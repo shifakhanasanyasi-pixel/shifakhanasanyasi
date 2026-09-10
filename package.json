@@ -1,0 +1,26 @@
+{
+  "name": "sanyasi-shifa-khana-firebase",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "node scripts/seed.mjs",
+    "rules:deploy": "firebase deploy --only firestore:rules"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "firebase": "^10.13.0",
+    "firebase-admin": "^12.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/node": "^20.14.15",
+    "@types/react": "^18.3.3",
+    "dotenv": "^16.4.5"
+  }
+}
