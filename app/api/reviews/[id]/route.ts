@@ -3,7 +3,7 @@ import { db } from '@/lib/firebaseAdmin';
 import { requireAdmin } from '@/lib/requireAdmin';
 
 // PATCH /api/reviews/[id] — admin only. Body: { status: "approved" | "rejected" }
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -12,15 +12,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'status must be approved or rejected' }, { status: 400 });
   }
 
-  const ref = db.collection('reviews').doc(params.id);
+  const { id } = await params;
+  const ref = db.collection('reviews').doc(id);
   const doc = await ref.get();
   if (!doc.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   await ref.update({ status });
 
-  // Keep the product's aggregate rating/reviewCount in sync — Firestore has
-  // no computed columns, so this has to be done manually whenever a review
-  // is approved (mirrors what a SQL trigger would otherwise do for you).
   if (status === 'approved') {
     const productId = doc.data()!.productId;
     const approvedSnap = await db.collection('reviews')
@@ -40,10 +38,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE /api/reviews/[id] — admin only
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  await db.collection('reviews').doc(params.id).delete();
+  const { id } = await params;
+  await db.collection('reviews').doc(id).delete();
   return NextResponse.json({ success: true });
 }
