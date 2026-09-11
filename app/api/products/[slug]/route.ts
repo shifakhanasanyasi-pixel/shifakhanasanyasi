@@ -3,12 +3,13 @@ import { db } from '@/lib/firebaseAdmin';
 import { requireAdmin } from '@/lib/requireAdmin';
 
 // GET /api/products/[slug] — public. Document ID === slug.
-export async function GET(_req: NextRequest, { params }: { params: { slug: string } }) {
-  const doc = await db.collection('products').doc(params.slug).get();
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const doc = await db.collection('products').doc(slug).get();
   if (!doc.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const reviewsSnap = await db.collection('reviews')
-    .where('productId', '==', params.slug)
+    .where('productId', '==', slug)
     .where('status', '==', 'approved')
     .get();
 
@@ -20,11 +21,12 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
 }
 
 // PUT /api/products/[slug] — admin only
-export async function PUT(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const ref = db.collection('products').doc(params.slug);
+  const { slug } = await params;
+  const ref = db.collection('products').doc(slug);
   const existing = await ref.get();
   if (!existing.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -35,11 +37,12 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
 }
 
 // DELETE /api/products/[slug] — admin only
-export async function DELETE(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const ref = db.collection('products').doc(params.slug);
+  const { slug } = await params;
+  const ref = db.collection('products').doc(slug);
   const existing = await ref.get();
   if (!existing.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
