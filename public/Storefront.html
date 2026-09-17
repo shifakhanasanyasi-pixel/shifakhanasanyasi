@@ -15,7 +15,7 @@
      escapeHtml() function in the JS). This CSP's real job is stopping
      an attacker from loading a malicious script/image from a domain
      that isn't fonts.googleapis.com / fonts.bunny.net / fonts.gstatic.com. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; base-uri 'self'; form-action 'self' https://wa.me;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; img-src 'self' data: https://firebasestorage.googleapis.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com; base-uri 'self'; form-action 'self' https://wa.me;" />
 <meta name="theme-color" content="#0F3D2E" />
 <link rel="canonical" href="https://sanyasishifakhana.com/" />
 
@@ -1518,9 +1518,11 @@
 
         <div class="adm-form-section">
           <h4>Images</h4>
-          <div style="border:2px dashed #E4E6E1; border-radius:14px; padding:24px; text-align:center; color:#6B6F68; font-size:13px;">
-            📷 Drag & drop images here, or <strong>browse</strong><br/>(Preview only — connect storage to make this functional)
+          <input type="file" id="af_images_input" accept="image/*" multiple style="display:none" />
+          <div id="af_dropzone" style="border:2px dashed #E4E6E1; border-radius:14px; padding:24px; text-align:center; color:#6B6F68; font-size:13px; cursor:pointer;">
+            📷 Drag &amp; drop images here, or <strong>browse</strong>
           </div>
+          <div id="af_images_preview" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;"></div>
         </div>
 
         <div class="adm-form-section">
@@ -1586,10 +1588,12 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
   const firebaseConfig = __FIREBASE_CONFIG__;
   const fbApp = initializeApp(firebaseConfig);
   const fbAuth = getAuth(fbApp);
+  const fbStorage = getStorage(fbApp);
 
   window.__ssk = {
     signIn: (email, password) => signInWithEmailAndPassword(fbAuth, email, password),
@@ -1598,6 +1602,12 @@
       const user = fbAuth.currentUser;
       if (!user) return null;
       return await user.getIdToken();
+    },
+    uploadImage: async (file, folder) => {
+      const path = `${folder}/${Date.now()}-${file.name}`;
+      const fileRef = ref(fbStorage, path);
+      await uploadBytes(fileRef, file);
+      return await getDownloadURL(fileRef);
     },
     onAuthReady: new Promise((resolve) => {
       onAuthStateChanged(fbAuth, (user) => resolve(user));
@@ -2004,13 +2014,22 @@
     return `<div class="seal" style="width:${size}px;height:${size}px;filter:hue-rotate(${hue}deg);"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="22" fill="#0F3D2E" opacity="0.92"/></svg></div>`;
   }
 
+  function productMedia(p, size, idx){
+    const imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
+    const url = imgs[idx] || imgs[0];
+    if(url){
+      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(p.name||'')}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" />`;
+    }
+    return sealMedia(size, idx);
+  }
+
   function productCardHtml(p){
     const name=escapeHtml(p.name), nameUr=escapeHtml(p.nameUr), cat=escapeHtml(p.cat), catUr=escapeHtml(p.catUr);
     const shortDesc=escapeHtml(p.shortDesc), shortDescUr=escapeHtml(p.shortDescUr);
     return `
       ${p.bestseller ? `<span class="badge" data-ur="پسندیدہ" data-en="Bestseller">پسندیدہ</span>` : ''}
       <button class="wishlist-btn${wishlist.includes(p.slug)?' active':''}" data-slug="${p.slug}" aria-label="Add to wishlist" onclick="event.stopPropagation(); toggleWishlist('${p.slug}');">${wishlist.includes(p.slug)?'♥':'♡'}</button>
-      <div class="product-media">${sealMedia(88,0)}</div>
+      <div class="product-media">${productMedia(p, 88, 0)}</div>
       <div class="product-body">
         <span class="product-cat" data-ur="${catUr}" data-en="${cat}">${lang==='ur'?catUr:cat}</span>
         <h3 data-ur="${nameUr}" data-en="${name}">${lang==='ur'?nameUr:name}</h3>
@@ -2187,15 +2206,16 @@
 
     const mainGal = document.getElementById('pdGalleryMain');
     const thumbsEl = document.getElementById('pdThumbs');
+    const galleryCount = Array.isArray(p.images) && p.images.length ? p.images.length : 1;
     function setMainImage(idx){
-      mainGal.innerHTML = sealMedia(160, idx);
+      mainGal.innerHTML = productMedia(p, 160, idx);
       thumbsEl.querySelectorAll('.pd-thumb').forEach((t,i)=>t.classList.toggle('active', i===idx));
     }
     thumbsEl.innerHTML = '';
-    for(let i=0;i<p.images;i++){
+    for(let i=0;i<galleryCount;i++){
       const t = document.createElement('div');
       t.className = 'pd-thumb glass' + (i===0?' active':'');
-      t.innerHTML = sealMedia(36, i);
+      t.innerHTML = productMedia(p, 36, i);
       t.onclick = ()=>setMainImage(i);
       thumbsEl.appendChild(t);
     }
@@ -2380,6 +2400,44 @@
   document.getElementById('admProductSearch').addEventListener('input', renderAdmProductsTable);
 
   let admEditingSlug = null;
+  let afExistingImages = [];
+  let afNewFiles = [];
+
+  function renderAfImagesPreview(){
+    const wrap = document.getElementById('af_images_preview');
+    const items = [
+      ...afExistingImages.map((url, i) => ({ type:'existing', url, i })),
+      ...afNewFiles.map((file, i) => ({ type:'new', url: URL.createObjectURL(file), i })),
+    ];
+    wrap.innerHTML = items.map(item => `
+      <div style="position:relative; width:64px; height:64px;">
+        <img src="${item.url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />
+        <button type="button" onclick="removeAfImage('${item.type}', ${item.i})" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#B3261E; color:#fff; border:none; font-size:12px; cursor:pointer; line-height:1;">×</button>
+      </div>
+    `).join('');
+  }
+  function removeAfImage(type, i){
+    if(type === 'existing') afExistingImages.splice(i, 1);
+    else afNewFiles.splice(i, 1);
+    renderAfImagesPreview();
+  }
+
+  const afDropzone = document.getElementById('af_dropzone');
+  const afImagesInput = document.getElementById('af_images_input');
+  afDropzone.addEventListener('click', ()=> afImagesInput.click());
+  afImagesInput.addEventListener('change', (e)=>{
+    afNewFiles.push(...Array.from(e.target.files));
+    renderAfImagesPreview();
+    afImagesInput.value = '';
+  });
+  afDropzone.addEventListener('dragover', (e)=>{ e.preventDefault(); afDropzone.style.borderColor = 'var(--gold)'; });
+  afDropzone.addEventListener('dragleave', ()=>{ afDropzone.style.borderColor = '#E4E6E1'; });
+  afDropzone.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    afDropzone.style.borderColor = '#E4E6E1';
+    afNewFiles.push(...Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')));
+    renderAfImagesPreview();
+  });
 
   function openAdmProductModal(slug){
     admEditingSlug = slug || null;
@@ -2405,6 +2463,9 @@
     document.getElementById('af_warnings').value = p ? (p.warnings||'') : '';
     document.getElementById('af_sw_featured').classList.toggle('on', p ? !!p.featured : false);
     document.getElementById('af_sw_bestseller').classList.toggle('on', p ? !!p.bestseller : false);
+    afExistingImages = p && Array.isArray(p.images) ? [...p.images] : [];
+    afNewFiles = [];
+    renderAfImagesPreview();
     document.getElementById('admProductModalOverlay').classList.add('open');
   }
   function closeAdmProductModal(){ document.getElementById('admProductModalOverlay').classList.remove('open'); }
@@ -2440,7 +2501,6 @@
       disclaimerUr: existing ? existing.disclaimerUr : DEFAULT_DISCLAIMER_UR,
       rating: existing ? existing.rating : 4.5,
       reviews: existing ? existing.reviews : 0,
-      images: existing ? existing.images : 3,
       featured: document.getElementById('af_sw_featured').classList.contains('on'),
       bestseller: document.getElementById('af_sw_bestseller').classList.contains('on'),
     };
@@ -2452,6 +2512,15 @@
     try {
       const token = await window.__ssk.getIdToken();
       if(!token){ throw new Error('You are not signed in. Please log in again.'); }
+
+      if(afNewFiles.length && saveBtn){ saveBtn.textContent = 'Uploading images...'; }
+      const uploadedUrls = [];
+      for(const file of afNewFiles){
+        const url = await window.__ssk.uploadImage(file, `products/${slug}`);
+        uploadedUrls.push(url);
+      }
+      data.images = [...afExistingImages, ...uploadedUrls];
+      if(saveBtn){ saveBtn.textContent = 'Saving...'; }
 
       const res = await fetch(existing ? `/api/products/${slug}` : '/api/products', {
         method: existing ? 'PUT' : 'POST',
