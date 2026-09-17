@@ -15,7 +15,7 @@
      escapeHtml() function in the JS). This CSP's real job is stopping
      an attacker from loading a malicious script/image from a domain
      that isn't fonts.googleapis.com / fonts.bunny.net / fonts.gstatic.com. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self' https://wa.me;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; base-uri 'self'; form-action 'self' https://wa.me;" />
 <meta name="theme-color" content="#0F3D2E" />
 <link rel="canonical" href="https://sanyasishifakhana.com/" />
 
@@ -1268,8 +1268,8 @@
       <h2>Sanyasi Shifa Khana</h2>
       <p class="adm-login-sub">Admin Dashboard</p>
       <form id="admLoginForm" onsubmit="return false;">
-        <div class="adm-field"><label>Email</label><input type="email" value="admin@sanyasishifakhana.com" required /></div>
-        <div class="adm-field"><label>Password</label><input type="password" value="••••••••" required /></div>
+        <div class="adm-field"><label>Email</label><input type="email" placeholder="you@example.com" required /></div>
+        <div class="adm-field"><label>Password</label><input type="password" placeholder="Password" required /></div>
         <button type="button" id="admLoginSubmitBtn" class="adm-btn adm-btn-primary" style="width:100%;">Sign In</button>
       </form>
       <p class="adm-login-note">Demo login — click Sign In to preview the dashboard.<br/>Real authentication will be wired up when this connects to a backend.</p>
@@ -1583,6 +1583,27 @@
   </div>
 </footer>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const firebaseConfig = __FIREBASE_CONFIG__;
+  const fbApp = initializeApp(firebaseConfig);
+  const fbAuth = getAuth(fbApp);
+
+  window.__ssk = {
+    signIn: (email, password) => signInWithEmailAndPassword(fbAuth, email, password),
+    signOut: () => signOut(fbAuth),
+    getIdToken: async () => {
+      const user = fbAuth.currentUser;
+      if (!user) return null;
+      return await user.getIdToken();
+    },
+    onAuthReady: new Promise((resolve) => {
+      onAuthStateChanged(fbAuth, (user) => resolve(user));
+    }),
+  };
+</script>
 <script>
   // ============ INTERNAL NAVIGATION HELPER (used site-wide) ============
   // Internal navigation helper — used instead of href="#..." because anchor
@@ -1951,122 +1972,7 @@
   });
   updateCartBadges();
 
-  const products = [
-    {
-      slug:"joshina-e-mafasil", name:"Joshina-e-Mafasil", nameUr:"جوشینہ مفاصل",
-      cat:"Joint Care", catUr:"جوڑوں کی دیکھ بھال",
-      shortDesc:"Joint & mobility support decoction of shuddha guggul and nirgundi.",
-      shortDescUr:"جوڑوں کی حرکت اور سکون کے لیے قدرتی جوشاندہ",
-      desc:"A classical Unani decoction formulated to ease stiffness and support everyday mobility. Prepared in small batches using shuddha guggul and nirgundi, following a recipe refined over 28 years of practice.",
-      descUr:"جوڑوں کی اکڑن کم کرنے اور روزمرہ حرکت میں سہولت کے لیے تیار کردہ کلاسیکی یونانی جوشاندہ۔ یہ نسخہ 28 سالہ تجربے سے مزین ہے اور خالص شدھ گگل اور نرگنڈی سے تیار کیا جاتا ہے۔",
-      price:1450, sale:1250, stock:"in", sku:"SSK-JM-100", weight:"200ml",
-      rating:4.8, reviews:132, featured:true, bestseller:true, images:3,
-      tags:[{en:"Herbal",ur:"جڑی بوٹی"},{en:"Classical Recipe",ur:"کلاسیکی نسخہ"}],
-      ingredients:[{en:"Shuddha Guggul",ur:"شدھ گگل"},{en:"Nirgundi",ur:"نرگنڈی"},{en:"Ajwain",ur:"اجوائن"},{en:"Sonth (dry ginger)",ur:"سونٹھ"}],
-      benefits:[{en:"Eases joint stiffness",ur:"جوڑوں کی اکڑن میں کمی"},{en:"Supports everyday mobility",ur:"روزمرہ حرکت میں سہولت"},{en:"Naturally reduces inflammation",ur:"قدرتی طور پر سوزش میں کمی"}],
-      usage:"Take 30ml twice daily after meals, or as advised by the hakim.",
-      usageUr:"کھانے کے بعد دن میں دو بار 30 ملی لیٹر استعمال کریں، یا حکیم صاحب کی ہدایت کے مطابق۔",
-      warnings:"Not recommended during pregnancy without consultation. Keep out of reach of children.",
-      warningsUr:"حمل کے دوران مشاورت کے بغیر استعمال نہ کریں۔ بچوں کی پہنچ سے دور رکھیں۔",
-      disclaimer:"This product is a traditional Unani preparation and is not a substitute for professional medical treatment.",
-      disclaimerUr:"یہ مصنوعہ روایتی یونانی طریقہ علاج پر مبنی ہے اور طبی علاج کا متبادل نہیں۔",
-    },
-    {
-      slug:"roghan-e-baiza-murgh", name:"Roghan-e-Baiza Murgh", nameUr:"روغن بیضہ مرغ",
-      cat:"Vitality", catUr:"توانائی",
-      shortDesc:"Traditional strengthening oil for nerves and vitality.",
-      shortDescUr:"اعصاب اور توانائی کے لیے مجرب روغن",
-      desc:"A time-tested strengthening oil used across generations to support nerve health and overall vitality, gently massaged into the scalp and spine.",
-      descUr:"اعصاب کی مضبوطی اور مجموعی توانائی کے لیے نسل در نسل استعمال ہونے والا مجرب روغن، جسے سر اور ریڑھ کی ہڈی پر ہلکے ہاتھ سے مالش کیا جاتا ہے۔",
-      price:980, sale:null, stock:"in", sku:"SSK-RB-050", weight:"100ml",
-      rating:4.7, reviews:88, featured:true, bestseller:false, images:3,
-      tags:[{en:"External Use",ur:"بیرونی استعمال"},{en:"Traditional",ur:"روایتی"}],
-      ingredients:[{en:"Roghan Baiza Murgh base",ur:"روغن بیضہ مرغ بیس"},{en:"Zafran (saffron)",ur:"زعفران"},{en:"Sandal",ur:"صندل"}],
-      benefits:[{en:"Strengthens nerves",ur:"اعصاب کی مضبوطی"},{en:"Improves overall vitality",ur:"مجموعی توانائی میں بہتری"},{en:"Aids restful sleep",ur:"پرسکون نیند میں مدد"}],
-      usage:"Gently massage a small amount onto the scalp and spine before sleep.",
-      usageUr:"سونے سے پہلے تھوڑی مقدار سر اور ریڑھ کی ہڈی پر ہلکے ہاتھ سے مالش کریں۔",
-      warnings:"For external use only. Discontinue if irritation occurs.",
-      warningsUr:"صرف بیرونی استعمال کے لیے۔ جلن محسوس ہونے پر استعمال بند کر دیں۔",
-      disclaimer:"This product is a traditional Unani preparation and is not a substitute for professional medical treatment.",
-      disclaimerUr:"یہ مصنوعہ روایتی یونانی طریقہ علاج پر مبنی ہے اور طبی علاج کا متبادل نہیں۔",
-    },
-    {
-      slug:"sharbat-e-dinar", name:"Sharbat-e-Dinar", nameUr:"شربت دینار",
-      cat:"Digestive Health", catUr:"نظام ہاضمہ",
-      shortDesc:"Cooling digestive tonic infused with rose and fennel.",
-      shortDescUr:"گلاب اور سونف سے تیار ہاضمے کا تونک",
-      desc:"A refreshing, cooling tonic for the digestive system, made with rose petals, fennel and mulethi — a household staple for easing bloating and discomfort after meals.",
-      descUr:"نظام ہاضمہ کے لیے ٹھنڈک بخش تونک، جو گلاب کی پتیوں، سونف اور ملیٹھی سے تیار کیا جاتا ہے — کھانے کے بعد بھاری پن دور کرنے کے لیے گھریلو ضرورت۔",
-      price:720, sale:650, stock:"in", sku:"SSK-SD-750", weight:"750ml",
-      rating:4.9, reviews:210, featured:true, bestseller:true, images:3,
-      tags:[{en:"Family Favourite",ur:"خاندانی پسند"},{en:"Cooling",ur:"ٹھنڈک بخش"}],
-      ingredients:[{en:"Gulab (rose petals)",ur:"گلاب کی پتیاں"},{en:"Saunf (fennel)",ur:"سونف"},{en:"Mulethi",ur:"ملیٹھی"},{en:"Sugar syrup",ur:"چینی کا شربت"}],
-      benefits:[{en:"Cools the digestive system",ur:"نظام ہاضمہ کو ٹھنڈک"},{en:"Eases bloating",ur:"بھاری پن میں کمی"},{en:"Refreshing daily tonic",ur:"روزمرہ کے لیے تازگی بخش تونک"}],
-      usage:"Mix 20ml in a glass of water, once or twice daily.",
-      usageUr:"20 ملی لیٹر ایک گلاس پانی میں ملا کر دن میں ایک یا دو بار استعمال کریں۔",
-      warnings:"Diabetics should consult before regular use due to sugar content.",
-      warningsUr:"شوگر کے مریض باقاعدہ استعمال سے پہلے مشورہ کریں کیونکہ اس میں چینی شامل ہے۔",
-      disclaimer:"This product is a traditional Unani preparation and is not a substitute for professional medical treatment.",
-      disclaimerUr:"یہ مصنوعہ روایتی یونانی طریقہ علاج پر مبنی ہے اور طبی علاج کا متبادل نہیں۔",
-    },
-    {
-      slug:"majoon-e-falasfa", name:"Majoon-e-Falasfa", nameUr:"معجون فلاسفہ",
-      cat:"Vitality", catUr:"توانائی",
-      shortDesc:"Classical restorative electuary for stamina and focus.",
-      shortDescUr:"قوت اور ارتکاز کے لیے کلاسیکی معجون",
-      desc:"An electuary prepared from saffron, almonds and a honey base, following a classical formula intended to restore stamina and sharpen mental focus.",
-      descUr:"زعفران، بادام اور شہد کی بنیاد سے تیار کردہ معجون، ایک کلاسیکی نسخے کے مطابق جو قوت بحال کرنے اور ذہنی ارتکاز بڑھانے کے لیے بنایا گیا ہے۔",
-      price:1650, sale:null, stock:"low", sku:"SSK-MF-250", weight:"250g",
-      rating:4.6, reviews:64, featured:false, bestseller:true, images:3,
-      tags:[{en:"Classical Recipe",ur:"کلاسیکی نسخہ"},{en:"Limited Batch",ur:"محدود کھیپ"}],
-      ingredients:[{en:"Zafran (saffron)",ur:"زعفران"},{en:"Kesar",ur:"کیسر"},{en:"Almonds",ur:"بادام"},{en:"Honey base",ur:"شہد کی بنیاد"}],
-      benefits:[{en:"Restores stamina",ur:"قوت کی بحالی"},{en:"Sharpens focus",ur:"ذہنی ارتکاز میں بہتری"},{en:"Classical restorative formula",ur:"کلاسیکی تقویتی نسخہ"}],
-      usage:"One teaspoon with warm milk, once daily in the morning.",
-      usageUr:"صبح ایک چمچ نیم گرم دودھ کے ساتھ روزانہ استعمال کریں۔",
-      warnings:"Contains honey — not suitable for children under 1 year.",
-      warningsUr:"اس میں شہد شامل ہے — ایک سال سے کم عمر بچوں کے لیے موزوں نہیں۔",
-      disclaimer:"This product is a traditional Unani preparation and is not a substitute for professional medical treatment.",
-      disclaimerUr:"یہ مصنوعہ روایتی یونانی طریقہ علاج پر مبنی ہے اور طبی علاج کا متبادل نہیں۔",
-    },
-    {
-      slug:"zimad-e-mafasil", name:"Zimad-e-Mafasil", nameUr:"ضماد مفاصل",
-      cat:"Joint Care", catUr:"جوڑوں کی دیکھ بھال",
-      shortDesc:"External application for fast joint & muscular pain relief.",
-      shortDescUr:"جوڑوں اور پٹھوں کے درد کے لیے بیرونی مرہم",
-      desc:"A warming external application made from ajwain and mustard oils, massaged directly onto sore joints and tired muscles for fast, natural relief.",
-      descUr:"اجوائن اور سرسوں کے تیل سے تیار کردہ گرم مرہم، جو جوڑوں اور تھکے ہوئے پٹھوں پر براہ راست مالش کر کے فوری اور قدرتی سکون فراہم کرتا ہے۔",
-      price:890, sale:null, stock:"in", sku:"SSK-ZM-100", weight:"100g",
-      rating:4.5, reviews:41, featured:false, bestseller:false, images:3,
-      tags:[{en:"External Use",ur:"بیرونی استعمال"},{en:"Fast Acting",ur:"تیز اثر"}],
-      ingredients:[{en:"Ajwain oil",ur:"اجوائن کا تیل"},{en:"Methi",ur:"میتھی"},{en:"Sarson (mustard) oil",ur:"سرسوں کا تیل"}],
-      benefits:[{en:"Soothes sore joints",ur:"دردیلے جوڑوں کو سکون"},{en:"Warms tired muscles",ur:"تھکے ہوئے پٹھوں کو گرمائش"},{en:"Fast-acting relief",ur:"فوری سکون"}],
-      usage:"Apply and massage gently onto the affected area twice daily.",
-      usageUr:"متاثرہ جگہ پر دن میں دو بار ہلکے ہاتھ سے لگا کر مالش کریں۔",
-      warnings:"Avoid contact with eyes. For external use only.",
-      warningsUr:"آنکھوں سے دور رکھیں۔ صرف بیرونی استعمال کے لیے۔",
-      disclaimer:"This product is a traditional Unani preparation and is not a substitute for professional medical treatment.",
-      disclaimerUr:"یہ مصنوعہ روایتی یونانی طریقہ علاج پر مبنی ہے اور طبی علاج کا متبادل نہیں۔",
-    },
-    {
-      slug:"ubtan-e-gulab", name:"Ubtan-e-Gulab", nameUr:"اُبٹن گلاب",
-      cat:"Skin & Beauty", catUr:"جلد کی خوبصورتی",
-      shortDesc:"Rose & multani mitti ubtan for a natural, brightened glow.",
-      shortDescUr:"قدرتی نکھار کے لیے گلاب اور ملتانی مٹی کا اُبٹن",
-      desc:"A gentle, traditional ubtan made from rose petals, multani mitti and almonds — mixed fresh into a paste to cleanse and brighten the skin naturally.",
-      descUr:"گلاب کی پتیوں، ملتانی مٹی اور بادام سے تیار روایتی اُبٹن — جسے تازہ پیسٹ کی صورت میں جلد کو قدرتی طور پر صاف اور نکھارنے کے لیے استعمال کیا جاتا ہے۔",
-      price:650, sale:590, stock:"in", sku:"SSK-UG-150", weight:"150g",
-      rating:4.8, reviews:97, featured:true, bestseller:false, images:3,
-      tags:[{en:"Skin Care",ur:"جلد کی دیکھ بھال"},{en:"Natural",ur:"قدرتی"}],
-      ingredients:[{en:"Gulab (rose petals)",ur:"گلاب کی پتیاں"},{en:"Multani mitti",ur:"ملتانی مٹی"},{en:"Badam (almonds)",ur:"بادام"},{en:"Haldi (turmeric)",ur:"ہلدی"}],
-      benefits:[{en:"Brightens complexion",ur:"رنگت میں نکھار"},{en:"Gently exfoliates",ur:"نرمی سے صفائی"},{en:"Nourishes the skin",ur:"جلد کی غذائیت"}],
-      usage:"Mix with rose water to form a paste, apply for 15 minutes, then rinse.",
-      usageUr:"گلاب کے پانی کے ساتھ پیسٹ بنا کر چہرے پر لگائیں، 15 منٹ بعد دھو لیں۔",
-      warnings:"Patch test recommended before first use.",
-      warningsUr:"پہلی بار استعمال سے پہلے ہاتھ پر ٹیسٹ کر لیں۔",
-      disclaimer:"This product is a traditional Unani preparation and is not a substitute for professional medical treatment.",
-      disclaimerUr:"یہ مصنوعہ روایتی یونانی طریقہ علاج پر مبنی ہے اور طبی علاج کا متبادل نہیں۔",
-    },
-  ];
+  let products = [];
 
   // ============ SECURITY: escape admin/user-entered text before ============
   // ============ inserting it into innerHTML, to prevent stored XSS ============
@@ -2368,13 +2274,38 @@
   function admSplitList(s){ return (s||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>({en:x, ur:x})); }
   function admJoinList(arr){ return (arr||[]).map(x=>x.en).join(', '); }
 
-  document.getElementById('admLoginSubmitBtn').addEventListener('click', (e)=>{
+  document.getElementById('admLoginSubmitBtn').addEventListener('click', async (e)=>{
     e.preventDefault();
-    document.getElementById('admLoginWrap').style.display = 'none';
-    document.getElementById('admShell').classList.add('open');
-    admNavigate('dashboard');
+    const btn = document.getElementById('admLoginSubmitBtn');
+    const emailInput = document.querySelector('#admLoginForm input[type="email"]');
+    const passInput = document.querySelector('#admLoginForm input[type="password"]');
+    const email = emailInput.value.trim();
+    const password = passInput.value;
+    let errorEl = document.getElementById('admLoginError');
+    if(!errorEl){
+      errorEl = document.createElement('div');
+      errorEl.id = 'admLoginError';
+      errorEl.style.cssText = 'color:#B3261E; font-size:13px; margin-top:10px; text-align:center;';
+      document.getElementById('admLoginForm').appendChild(errorEl);
+    }
+    errorEl.textContent = '';
+    const originalText = btn.textContent;
+    btn.textContent = 'Signing in...';
+    btn.disabled = true;
+    try {
+      await window.__ssk.signIn(email, password);
+      document.getElementById('admLoginWrap').style.display = 'none';
+      document.getElementById('admShell').classList.add('open');
+      admNavigate('dashboard');
+    } catch(err){
+      errorEl.textContent = 'Sign in failed — check your email and password.';
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
   });
-  document.getElementById('admLogoutBtn').addEventListener('click', ()=>{
+  document.getElementById('admLogoutBtn').addEventListener('click', async ()=>{
+    await window.__ssk.signOut();
     document.getElementById('admShell').classList.remove('open');
     document.getElementById('admLoginWrap').style.display = 'flex';
   });
@@ -2478,7 +2409,7 @@
   }
   function closeAdmProductModal(){ document.getElementById('admProductModalOverlay').classList.remove('open'); }
 
-  function saveAdmProduct(){
+  async function saveAdmProduct(){
     const name = document.getElementById('af_name').value.trim();
     if(!name){ document.getElementById('af_name').focus(); return; }
     const cat = document.getElementById('af_cat').value;
@@ -2488,7 +2419,7 @@
     const data = {
       slug, name,
       nameUr: document.getElementById('af_nameUr').value.trim(),
-      cat, catUr: CAT_UR_MAP[cat] || cat,
+      category: cat, cat, catUr: CAT_UR_MAP[cat] || cat,
       shortDesc: document.getElementById('af_shortDesc').value.trim(),
       shortDescUr: document.getElementById('af_shortDescUr').value.trim(),
       desc: document.getElementById('af_desc').value.trim(),
@@ -2514,20 +2445,48 @@
       bestseller: document.getElementById('af_sw_bestseller').classList.contains('on'),
     };
 
-    if(existing){
-      Object.assign(existing, data);
-    } else {
-      products.unshift(data);
-    }
+    const saveBtn = document.querySelector('#admProductModalOverlay .adm-btn-primary');
+    const originalLabel = saveBtn ? saveBtn.textContent : '';
+    if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
 
-    closeAdmProductModal();
-    renderAdmProductsTable();
-    renderAdmDashboard();
-    renderHomeFeatured();
-    injectProductSchema();
-    renderCategoryChips();
-    filterAndRenderShop();
-    if(currentProduct && currentProduct.slug === slug){ renderProductDetail(slug); }
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token){ throw new Error('You are not signed in. Please log in again.'); }
+
+      const res = await fetch(existing ? `/api/products/${slug}` : '/api/products', {
+        method: existing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Save failed (${res.status})`);
+      }
+      const saved = await res.json();
+
+      if(existing){
+        Object.assign(existing, saved);
+      } else {
+        products.unshift(saved);
+      }
+
+      closeAdmProductModal();
+      renderAdmProductsTable();
+      renderAdmDashboard();
+      renderHomeFeatured();
+      injectProductSchema();
+      renderCategoryChips();
+      filterAndRenderShop();
+      if(currentProduct && currentProduct.slug === slug){ renderProductDetail(slug); }
+    } catch(err){
+      alert('Could not save product: ' + err.message);
+    } finally {
+      if(saveBtn){ saveBtn.textContent = originalLabel; saveBtn.disabled = false; }
+    }
   }
 
   let admDeletingSlug = null;
@@ -2538,18 +2497,33 @@
     document.getElementById('admDeleteModalOverlay').classList.add('open');
   }
   function closeAdmDeleteModal(){ document.getElementById('admDeleteModalOverlay').classList.remove('open'); }
-  function confirmAdmDelete(){
+  async function confirmAdmDelete(){
     const wasViewingDeleted = currentProduct && currentProduct.slug === admDeletingSlug;
-    const idx = products.findIndex(x=>x.slug === admDeletingSlug);
-    if(idx > -1) products.splice(idx, 1);
-    closeAdmDeleteModal();
-    renderAdmProductsTable();
-    renderAdmDashboard();
-    renderHomeFeatured();
-    injectProductSchema();
-    renderCategoryChips();
-    filterAndRenderShop();
-    if(wasViewingDeleted){ location.hash = '#/shop'; }
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token){ throw new Error('You are not signed in. Please log in again.'); }
+      const res = await fetch(`/api/products/${admDeletingSlug}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Delete failed (${res.status})`);
+      }
+      const idx = products.findIndex(x=>x.slug === admDeletingSlug);
+      if(idx > -1) products.splice(idx, 1);
+      closeAdmDeleteModal();
+      renderAdmProductsTable();
+      renderAdmDashboard();
+      renderHomeFeatured();
+      injectProductSchema();
+      renderCategoryChips();
+      filterAndRenderShop();
+      if(wasViewingDeleted){ location.hash = '#/shop'; }
+    } catch(err){
+      alert('Could not delete product: ' + err.message);
+      closeAdmDeleteModal();
+    }
   }
 
   // ============================================================
@@ -2912,6 +2886,35 @@
 
   window.addEventListener('hashchange', handleRoute);
   handleRoute();
+
+  // ============ LIVE DATA — load real products from Firestore via the API ============
+  async function loadLiveProducts(){
+    try {
+      const res = await fetch('/api/products');
+      if(!res.ok) throw new Error('Failed to load products');
+      const data = await res.json();
+      products = data.map(p => ({ ...p, cat: p.cat || p.category }));
+      renderHomeFeatured();
+      injectProductSchema();
+      renderCategoryChips();
+      filterAndRenderShop();
+      renderAdmProductsTable();
+      renderAdmDashboard();
+      handleRoute();
+    } catch(err){
+      console.error('Could not load products from server:', err);
+    }
+  }
+  loadLiveProducts();
+
+  // If an admin is already signed in (e.g. page refreshed on /#/admin), skip straight to the dashboard.
+  window.__ssk.onAuthReady.then((user)=>{
+    if(user && location.hash.startsWith('#/admin')){
+      document.getElementById('admLoginWrap').style.display = 'none';
+      document.getElementById('admShell').classList.add('open');
+      admNavigate('dashboard');
+    }
+  });
 </script>
 </body>
 </html>
