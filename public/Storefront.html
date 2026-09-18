@@ -15,7 +15,7 @@
      escapeHtml() function in the JS). This CSP's real job is stopping
      an attacker from loading a malicious script/image from a domain
      that isn't fonts.googleapis.com / fonts.bunny.net / fonts.gstatic.com. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; img-src 'self' data: https://firebasestorage.googleapis.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com; base-uri 'self'; form-action 'self' https://wa.me;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; base-uri 'self'; form-action 'self' https://wa.me;" />
 <meta name="theme-color" content="#0F3D2E" />
 <link rel="canonical" href="https://sanyasishifakhana.com/" />
 
@@ -1387,7 +1387,8 @@
         <div class="adm-view" id="adm-view-media">
           <div class="adm-toolbar">
             <div class="adm-search">🔍<input id="admMediaSearch" placeholder="Search media..." /></div>
-            <button class="adm-btn adm-btn-primary" onclick="addMockMedia()">+ Upload</button>
+            <input type="file" id="admMediaFileInput" accept="image/*" multiple style="display:none" />
+            <button class="adm-btn adm-btn-primary" onclick="document.getElementById('admMediaFileInput').click()">+ Upload</button>
           </div>
           <div class="adm-media-grid" id="admMediaGrid"></div>
         </div>
@@ -1406,7 +1407,7 @@
               <div class="adm-field"><label>Instagram URL</label><input id="set_instagram" placeholder="https://instagram.com/..." /></div>
               <div class="adm-field"><label>Facebook URL</label><input id="set_facebook" placeholder="https://facebook.com/..." /></div>
             </div>
-            <button class="adm-btn adm-btn-primary" onclick="saveAdmSettings()">Save Settings</button>
+            <button class="adm-btn adm-btn-primary" id="admSettingsSaveBtn" onclick="saveAdmSettings()">Save Settings</button>
             <span id="admSettingsSaved" style="margin-inline-start:12px; font-size:13px; color:#1B6B4A; font-weight:700; opacity:0; transition:opacity .3s ease;">Saved ✓</span>
           </div>
         </div>
@@ -1588,12 +1589,10 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
   const firebaseConfig = __FIREBASE_CONFIG__;
   const fbApp = initializeApp(firebaseConfig);
   const fbAuth = getAuth(fbApp);
-  const fbStorage = getStorage(fbApp);
 
   window.__ssk = {
     signIn: (email, password) => signInWithEmailAndPassword(fbAuth, email, password),
@@ -1602,12 +1601,6 @@
       const user = fbAuth.currentUser;
       if (!user) return null;
       return await user.getIdToken();
-    },
-    uploadImage: async (file, folder) => {
-      const path = `${folder}/${Date.now()}-${file.name}`;
-      const fileRef = ref(fbStorage, path);
-      await uploadBytes(fileRef, file);
-      return await getDownloadURL(fileRef);
     },
     onAuthReady: new Promise((resolve) => {
       onAuthStateChanged(fbAuth, (user) => resolve(user));
@@ -1923,10 +1916,12 @@
       } else {
         body.innerHTML = cart.map(cartItemRow).join('');
         const subtotal = cart.reduce((sum,c)=>{ const p=findProduct(c.slug); return sum + (p ? (p.sale ?? p.price) * c.qty : 0); }, 0);
-        const waText = cart.map(c=>{ const p=findProduct(c.slug); return p ? `${p.name} x${c.qty}` : ''; }).filter(Boolean).join(', ');
         foot.innerHTML = `
           <div class="cart-subtotal-row"><span>${lang==='ur'?'ذیلی کل':'Subtotal'}</span><span>${money(subtotal)}</span></div>
-          <a href="https://wa.me/${siteSettings.whatsapp}?text=${encodeURIComponent((lang==='ur'?'آرڈر: ':'Order: ')+waText)}" class="cta-solid" style="width:100%; justify-content:center;" target="_blank" rel="noopener noreferrer" onclick="createOrderFromCart();">💬 <span>${lang==='ur'?'واٹس ایپ پر چیک آؤٹ':'Checkout on WhatsApp'}</span></a>`;
+          <input type="text" id="cartCustomerName" placeholder="${lang==='ur'?'آپ کا نام':'Your name'}" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #E4E6E1; margin-bottom:8px; font-size:14px;" />
+          <input type="tel" id="cartCustomerPhone" placeholder="${lang==='ur'?'فون نمبر':'Phone number'}" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #E4E6E1; margin-bottom:8px; font-size:14px;" />
+          <div id="cartOrderError" style="color:#B3261E; font-size:12px; margin-bottom:8px; display:none;"></div>
+          <a href="#" id="cartCheckoutBtn" class="cta-solid" style="width:100%; justify-content:center;" onclick="submitOrderAndCheckout(event);">💬 <span>${lang==='ur'?'واٹس ایپ پر چیک آؤٹ':'Checkout on WhatsApp'}</span></a>`;
       }
     } else {
       if(wishlist.length === 0){
@@ -1938,22 +1933,49 @@
     }
   }
 
-  function createOrderFromCart(){
+  async function submitOrderAndCheckout(e){
+    e.preventDefault();
     if(cart.length === 0) return;
-    const subtotal = cart.reduce((sum,c)=>{ const p=findProduct(c.slug); return sum + (p ? (p.sale ?? p.price) * c.qty : 0); }, 0);
-    const itemCount = cart.reduce((s,c)=>s+c.qty, 0);
-    orders.unshift({
-      id: '#SSK-' + (orderCounter++),
-      customer: 'Website Order',
-      phone: '—',
-      date: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
-      items: itemCount,
-      total: subtotal,
-      status: 'Pending',
-    });
-    cart = [];
-    updateCartBadges();
-    renderCartDrawer();
+    const nameInput = document.getElementById('cartCustomerName');
+    const phoneInput = document.getElementById('cartCustomerPhone');
+    const errEl = document.getElementById('cartOrderError');
+    const btn = document.getElementById('cartCheckoutBtn');
+    const customerName = nameInput.value.trim();
+    const customerPhone = phoneInput.value.trim();
+    errEl.style.display = 'none';
+
+    if(!customerName || !customerPhone){
+      errEl.textContent = lang==='ur' ? 'براہ کرم نام اور فون نمبر درج کریں' : 'Please enter your name and phone number';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const items = cart.map(c => ({ productId: c.slug, quantity: c.qty }));
+    const waText = cart.map(c=>{ const p=findProduct(c.slug); return p ? `${p.name} x${c.qty}` : ''; }).filter(Boolean).join(', ');
+    const waUrl = `https://wa.me/${siteSettings.whatsapp}?text=${encodeURIComponent((lang==='ur'?'آرڈر: ':'Order: ')+waText)}`;
+
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = lang==='ur' ? 'براہ کرم انتظار کریں...' : 'Placing order...';
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerName, customerPhone, items }),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || 'Could not place order');
+      }
+      cart = [];
+      updateCartBadges();
+      renderCartDrawer();
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    } catch(err){
+      errEl.textContent = (lang==='ur' ? 'خرابی: ' : 'Error: ') + err.message;
+      errEl.style.display = 'block';
+      btn.innerHTML = originalHtml;
+    }
   }
 
   function openCartDrawer(tab){
@@ -2012,6 +2034,31 @@
   function sealMedia(size, idx){
     const hue = idx ? idx * 40 : 0;
     return `<div class="seal" style="width:${size}px;height:${size}px;filter:hue-rotate(${hue}deg);"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="22" fill="#0F3D2E" opacity="0.92"/></svg></div>`;
+  }
+
+  function compressImageFile(file, maxDim = 800, quality = 0.7){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if(width > maxDim || height > maxDim){
+            if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Could not read image'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Could not read file'));
+      reader.readAsDataURL(file);
+    });
   }
 
   function productMedia(p, size, idx){
@@ -2156,12 +2203,14 @@
   // --- Product detail page ---
   let currentQty = 1;
   let currentTab = 'desc';
+  let currentProductReviews = [];
   const TABS = [
     {key:'desc', ur:'تفصیل', en:'Description'},
     {key:'ingredients', ur:'اجزاء', en:'Ingredients'},
     {key:'benefits', ur:'فوائد', en:'Benefits'},
     {key:'usage', ur:'استعمال', en:'Usage'},
     {key:'warnings', ur:'احتیاط', en:'Warnings'},
+    {key:'reviews', ur:'آراء', en:'Reviews'},
   ];
 
   function renderTabsHead(){
@@ -2172,6 +2221,8 @@
       btn.onclick = ()=>{ currentTab = btn.dataset.tab; renderTabsHead(); renderTabBody(currentProduct); };
     });
   }
+
+  let selectedReviewRating = 0;
 
   function renderTabBody(p){
     const body = document.getElementById('pdTabsBody');
@@ -2186,11 +2237,115 @@
       html = `<div class="pd-tab-panel active"><p>${escapeHtml(lang==='ur'?p.usageUr:p.usage)}</p></div>`;
     } else if(currentTab === 'warnings'){
       html = `<div class="pd-tab-panel active"><p>${escapeHtml(lang==='ur'?p.warningsUr:p.warnings)}</p><p class="pd-disclaimer">${escapeHtml(lang==='ur'?p.disclaimerUr:p.disclaimer)}</p></div>`;
+    } else if(currentTab === 'reviews'){
+      selectedReviewRating = 0;
+      const list = currentProductReviews;
+      const listHtml = list.length === 0
+        ? `<p style="color:var(--fg-muted); font-size:14px;">${lang==='ur'?'ابھی تک کوئی آراء نہیں':'No reviews yet — be the first to write one.'}</p>`
+        : list.map(r => `
+            <div style="border-bottom:1px solid #E4E6E1; padding:14px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>${escapeHtml(r.name)}</strong>
+                <span style="color:#D4A537;">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
+              </div>
+              <p style="margin:6px 0 0; font-size:14px; color:var(--fg-muted);">${escapeHtml(r.text)}</p>
+            </div>`).join('');
+
+      html = `<div class="pd-tab-panel active">
+        ${listHtml}
+        <div style="margin-top:20px; padding-top:20px; border-top:1px solid #E4E6E1;">
+          <h4 style="margin-bottom:12px;">${lang==='ur'?'اپنی رائے لکھیں':'Write a Review'}</h4>
+          <div id="reviewFormStars" style="font-size:22px; letter-spacing:4px; cursor:pointer; margin-bottom:10px; color:#D4A537;">☆☆☆☆☆</div>
+          <input type="text" id="reviewFormName" placeholder="${lang==='ur'?'آپ کا نام':'Your name'}" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #E4E6E1; margin-bottom:8px; font-size:14px;" />
+          <textarea id="reviewFormText" rows="3" placeholder="${lang==='ur'?'اپنا تجربہ لکھیں...':'Share your experience...'}" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #E4E6E1; margin-bottom:8px; font-size:14px; resize:vertical;"></textarea>
+          <div id="reviewFormMsg" style="font-size:12px; margin-bottom:8px; display:none;"></div>
+          <button type="button" id="reviewFormSubmitBtn" class="adm-btn adm-btn-primary" onclick="submitProductReview()">${lang==='ur'?'جمع کروائیں':'Submit Review'}</button>
+        </div>
+      </div>`;
     }
     body.innerHTML = html;
+
+    if(currentTab === 'reviews'){
+      const starsEl = document.getElementById('reviewFormStars');
+      const paintStars = () => { starsEl.textContent = '★'.repeat(selectedReviewRating) + '☆'.repeat(5-selectedReviewRating); };
+      starsEl.onclick = (e) => {
+        const rect = starsEl.getBoundingClientRect();
+        const relX = e.clientX - rect.left;
+        const starWidth = rect.width / 5;
+        selectedReviewRating = Math.min(5, Math.max(1, Math.ceil(relX / starWidth)));
+        paintStars();
+      };
+    }
+  }
+
+  async function submitProductReview(){
+    const nameInput = document.getElementById('reviewFormName');
+    const textInput = document.getElementById('reviewFormText');
+    const msgEl = document.getElementById('reviewFormMsg');
+    const btn = document.getElementById('reviewFormSubmitBtn');
+    const name = nameInput.value.trim();
+    const text = textInput.value.trim();
+    msgEl.style.display = 'none';
+
+    if(!name || !text || selectedReviewRating < 1){
+      msgEl.style.color = '#B3261E';
+      msgEl.textContent = lang==='ur' ? 'براہ کرم نام، رائے، اور ریٹنگ دیں' : 'Please provide your name, a rating, and your review';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    const originalLabel = btn.textContent;
+    btn.textContent = lang==='ur' ? 'جمع ہو رہا ہے...' : 'Submitting...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: currentProduct.slug, name, rating: selectedReviewRating, text }),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || 'Could not submit review');
+      }
+      nameInput.value = '';
+      textInput.value = '';
+      selectedReviewRating = 0;
+      document.getElementById('reviewFormStars').textContent = '☆☆☆☆☆';
+      msgEl.style.color = '#0F3D2E';
+      msgEl.textContent = lang==='ur' ? 'شکریہ! آپ کی رائے منظوری کے بعد ظاہر ہوگی۔' : 'Thank you! Your review will appear once approved.';
+      msgEl.style.display = 'block';
+    } catch(err){
+      msgEl.style.color = '#B3261E';
+      msgEl.textContent = err.message;
+      msgEl.style.display = 'block';
+    } finally {
+      btn.textContent = originalLabel;
+      btn.disabled = false;
+    }
   }
 
   let currentProduct = null;
+
+  async function loadProductReviews(slug){
+    try {
+      const res = await fetch(`/api/products/${slug}`);
+      if(!res.ok) return;
+      const data = await res.json();
+      if(!currentProduct || currentProduct.slug !== slug) return;
+      currentProductReviews = Array.isArray(data.reviews) ? data.reviews : [];
+      currentProduct.rating = data.rating ?? currentProduct.rating;
+      currentProduct.reviews = data.reviewCount ?? currentProductReviews.length;
+      const starsEl = document.getElementById('pdStars');
+      if(starsEl){
+        starsEl.innerHTML = starsHtml(currentProduct.rating) +
+          ` <span style="font-size:12px;color:var(--fg-muted);">(${currentProduct.reviews} ${lang==='ur'?'آراء':'reviews'})</span>`;
+      }
+      if(currentTab === 'reviews'){ renderTabBody(currentProduct); }
+    } catch(err){
+      console.error('Could not load reviews:', err);
+    }
+  }
 
   function renderProductDetail(slug){
     const p = products.find(x=>x.slug === slug);
@@ -2198,6 +2353,8 @@
     currentProduct = p;
     currentQty = 1;
     currentTab = 'desc';
+    currentProductReviews = [];
+    loadProductReviews(slug);
 
     document.getElementById('pdCrumb').innerHTML = `
       <a onclick="goHash('/'); return false;" role="link" tabindex="0" data-nav >${lang==='ur'?'ہوم':'Home'}</a> /
@@ -2345,11 +2502,11 @@
     document.getElementById('admTopbarTitle').textContent = ADM_TITLES[route] || 'Dashboard';
     if(route === 'dashboard') renderAdmDashboard();
     if(route === 'products') renderAdmProductsTable();
-    if(route === 'orders') renderAdmOrdersTable();
-    if(route === 'reviews') renderAdmReviewsList();
-    if(route === 'customers') renderAdmCustomersTable();
-    if(route === 'blog') renderAdmBlogTable();
-    if(route === 'media') renderAdmMediaGrid();
+    if(route === 'orders') loadLiveOrders();
+    if(route === 'reviews') loadLiveReviews();
+    if(route === 'customers') loadLiveCustomers();
+    if(route === 'blog') loadLiveBlogPosts();
+    if(route === 'media') loadLiveMedia();
     if(route === 'settings') loadAdmSettingsForm();
   }
 
@@ -2513,13 +2670,21 @@
       const token = await window.__ssk.getIdToken();
       if(!token){ throw new Error('You are not signed in. Please log in again.'); }
 
-      if(afNewFiles.length && saveBtn){ saveBtn.textContent = 'Uploading images...'; }
-      const uploadedUrls = [];
+      if(afNewFiles.length && saveBtn){ saveBtn.textContent = 'Processing images...'; }
+      const encodedImages = [];
       for(const file of afNewFiles){
-        const url = await window.__ssk.uploadImage(file, `products/${slug}`);
-        uploadedUrls.push(url);
+        try {
+          const dataUrl = await compressImageFile(file);
+          encodedImages.push(dataUrl);
+        } catch(imgErr){
+          throw new Error(`Could not process image "${file.name}": ${imgErr.message}`);
+        }
       }
-      data.images = [...afExistingImages, ...uploadedUrls];
+      data.images = [...afExistingImages, ...encodedImages];
+      const totalSize = data.images.reduce((sum, i) => sum + (i.length || 0), 0);
+      if(totalSize > 900000){
+        throw new Error('Images are too large in total — please use fewer photos or smaller ones (under ~1MB combined).');
+      }
       if(saveBtn){ saveBtn.textContent = 'Saving...'; }
 
       const res = await fetch(existing ? `/api/products/${slug}` : '/api/products', {
@@ -2600,13 +2765,41 @@
   // checkout also pushes a real order here, so placing an order
   // as a shopper actually shows up in admin immediately.
   // ============================================================
-  let orders = [
-    { id:"#SSK-1042", customer:"Ayesha Khan", phone:"+92 300 1112223", date:"29 Jul 2026", items:2, total:2700, status:"Processing" },
-    { id:"#SSK-1041", customer:"Bilal Sheikh", phone:"+92 301 2223334", date:"29 Jul 2026", items:1, total:980, status:"Pending" },
-    { id:"#SSK-1040", customer:"Farah Naz", phone:"+92 302 3334445", date:"28 Jul 2026", items:3, total:3420, status:"Shipped" },
-    { id:"#SSK-1039", customer:"Usman Tariq", phone:"+92 303 4445556", date:"27 Jul 2026", items:1, total:1250, status:"Delivered" },
-  ];
-  let orderCounter = 1043;
+  let orders = [];
+
+  const ORDER_STATUS_DISPLAY = { pending:'Pending', processing:'Processing', shipped:'Shipped', delivered:'Delivered', cancelled:'Cancelled' };
+  const ORDER_STATUS_API = { Pending:'pending', Processing:'processing', Shipped:'shipped', Delivered:'delivered', Cancelled:'cancelled' };
+
+  function adaptOrder(o){
+    return {
+      id: o.id,
+      orderNumber: o.orderNumber || o.id,
+      customer: o.customerName || '—',
+      phone: o.customerPhone || '—',
+      date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—',
+      items: Array.isArray(o.items) ? o.items.reduce((s,i)=>s+(i.quantity||0),0) : 0,
+      total: o.subtotal || 0,
+      status: ORDER_STATUS_DISPLAY[o.status] || o.status || 'Pending',
+    };
+  }
+
+  async function loadLiveOrders(){
+    const tbody = document.getElementById('admOrdersTableBody');
+    if(tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="adm-empty">Loading…</div></td></tr>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/orders', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load orders (${res.status})`);
+      const data = await res.json();
+      orders = data.map(adaptOrder);
+    } catch(err){
+      if(tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="adm-empty">Could not load orders: ${escapeHtml(err.message)}</div></td></tr>`;
+      return;
+    }
+    renderAdmOrdersTable();
+    renderAdmDashboard();
+  }
 
   function admStatusBadge(status){
     const map = { Pending:'neutral', Processing:'info', Shipped:'warn', Delivered:'success', Cancelled:'danger' };
@@ -2616,11 +2809,11 @@
   function renderAdmOrdersTable(){
     const q = (document.getElementById('admOrderSearch').value || '').toLowerCase();
     const tbody = document.getElementById('admOrdersTableBody');
-    const list = orders.filter(o=>!q || o.id.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q));
+    const list = orders.filter(o=>!q || o.orderNumber.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q));
     if(list.length === 0){ tbody.innerHTML = `<tr><td colspan="7"><div class="adm-empty">No orders found</div></td></tr>`; return; }
     tbody.innerHTML = list.map(o=>`
       <tr>
-        <td>${escapeHtml(o.id)}</td>
+        <td>#${escapeHtml(o.orderNumber)}</td>
         <td>${escapeHtml(o.customer)}</td>
         <td>${escapeHtml(o.date)}</td>
         <td>${o.items}</td>
@@ -2634,9 +2827,28 @@
       </tr>`).join('');
   }
   document.getElementById('admOrderSearch').addEventListener('input', renderAdmOrdersTable);
-  function updateAdmOrderStatus(id, status){
+  async function updateAdmOrderStatus(id, status){
     const o = orders.find(x=>x.id===id);
+    const previousStatus = o ? o.status : null;
     if(o) o.status = status;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: ORDER_STATUS_API[status] || status.toLowerCase() }),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Update failed (${res.status})`);
+      }
+    } catch(err){
+      if(o) o.status = previousStatus;
+      renderAdmOrdersTable();
+      alert('Could not update order status: ' + err.message);
+      return;
+    }
     renderAdmDashboard();
     renderAdmCustomersTable();
   }
@@ -2644,12 +2856,28 @@
   // ============================================================
   // REVIEWS
   // ============================================================
-  let reviews = [
-    { id:1, product:"joshina-e-mafasil", name:"Ayesha K.", rating:5, text:"The joint-care decoction changed my mother's life.", status:"approved" },
-    { id:2, product:"sharbat-e-dinar", name:"Bilal S.", rating:5, text:"Genuine Hikmat with fast delivery — rare to find both.", status:"approved" },
-    { id:3, product:"majoon-e-falasfa", name:"Farah N.", rating:4, text:"Good product, took a bit longer to arrive than expected.", status:"pending" },
-    { id:4, product:"ubtan-e-gulab", name:"Sana M.", rating:5, text:"My skin genuinely feels softer after two weeks.", status:"pending" },
-  ];
+  let reviews = [];
+
+  function adaptReview(r){
+    return { id: r.id, product: r.productId, name: r.name, rating: r.rating, text: r.text, status: r.status };
+  }
+
+  async function loadLiveReviews(){
+    const wrap = document.getElementById('admReviewsList');
+    if(wrap) wrap.innerHTML = `<div class="adm-card"><div class="adm-empty">Loading…</div></div>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/reviews', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load reviews (${res.status})`);
+      const data = await res.json();
+      reviews = data.map(adaptReview);
+    } catch(err){
+      if(wrap) wrap.innerHTML = `<div class="adm-card"><div class="adm-empty">Could not load reviews: ${escapeHtml(err.message)}</div></div>`;
+      return;
+    }
+    renderAdmReviewsList();
+  }
 
   function renderAdmReviewsList(){
     const q = (document.getElementById('admReviewSearch').value || '').toLowerCase();
@@ -2673,45 +2901,91 @@
           <div class="adm-review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
           <div class="adm-review-text">${escapeHtml(r.text)}</div>
           <div class="adm-review-actions">
-            ${r.status==='pending' ? `<button class="adm-btn-approve" onclick="setReviewStatus(${r.id},'approved')">Approve</button>` : ''}
-            <button class="adm-btn-reject" onclick="deleteAdmReview(${r.id})">Delete</button>
+            ${r.status==='pending' ? `<button class="adm-btn-approve" onclick="setReviewStatus('${r.id}','approved')">Approve</button>` : ''}
+            <button class="adm-btn-reject" onclick="deleteAdmReview('${r.id}')">Delete</button>
           </div>
         </div>`;
     }).join('');
   }
   document.getElementById('admReviewSearch').addEventListener('input', renderAdmReviewsList);
   document.getElementById('admReviewFilter').addEventListener('change', renderAdmReviewsList);
-  function setReviewStatus(id, status){
+  async function setReviewStatus(id, status){
     const r = reviews.find(x=>x.id===id);
+    const previousStatus = r ? r.status : null;
     if(r) r.status = status;
     renderAdmReviewsList();
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Update failed (${res.status})`);
+      }
+    } catch(err){
+      if(r) r.status = previousStatus;
+      renderAdmReviewsList();
+      alert('Could not update review: ' + err.message);
+    }
   }
-  function deleteAdmReview(id){
+  async function deleteAdmReview(id){
+    const removed = reviews.find(x=>x.id===id);
     reviews = reviews.filter(x=>x.id!==id);
     renderAdmReviewsList();
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Delete failed (${res.status})`);
+      }
+    } catch(err){
+      if(removed) reviews.push(removed);
+      renderAdmReviewsList();
+      alert('Could not delete review: ' + err.message);
+    }
   }
 
   // ============================================================
   // CUSTOMERS — aggregated from orders
   // ============================================================
+  let customers = [];
+
+  async function loadLiveCustomers(){
+    const tbody = document.getElementById('admCustomersTableBody');
+    if(tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="adm-empty">Loading…</div></td></tr>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/customers', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load customers (${res.status})`);
+      customers = await res.json();
+    } catch(err){
+      if(tbody) tbody.innerHTML = `<tr><td colspan="4"><div class="adm-empty">Could not load customers: ${escapeHtml(err.message)}</div></td></tr>`;
+      return;
+    }
+    renderAdmCustomersTable();
+  }
+
   function renderAdmCustomersTable(){
     const q = (document.getElementById('admCustomerSearch').value || '').toLowerCase();
-    const byCustomer = {};
-    orders.forEach(o=>{
-      const key = o.customer + '|' + o.phone;
-      if(!byCustomer[key]) byCustomer[key] = { name:o.customer, phone:o.phone, orderCount:0, total:0 };
-      byCustomer[key].orderCount += 1;
-      byCustomer[key].total += o.total;
-    });
-    const list = Object.values(byCustomer).filter(c=>!q || c.name.toLowerCase().includes(q));
+    const list = customers.filter(c=>!q || (c.name||'').toLowerCase().includes(q));
     const tbody = document.getElementById('admCustomersTableBody');
     if(list.length===0){ tbody.innerHTML = `<tr><td colspan="4"><div class="adm-empty">No customers yet</div></td></tr>`; return; }
     tbody.innerHTML = list.map(c=>`
       <tr>
-        <td>${escapeHtml(c.name)}</td>
-        <td>${escapeHtml(c.phone)}</td>
-        <td>${c.orderCount}</td>
-        <td>${admMoney(c.total)}</td>
+        <td>${escapeHtml(c.name||'—')}</td>
+        <td>${escapeHtml(c.phone||'—')}</td>
+        <td>${c.orderCount||0}</td>
+        <td>${admMoney(c.totalSpent||0)}</td>
       </tr>`).join('');
   }
   document.getElementById('admCustomerSearch').addEventListener('input', renderAdmCustomersTable);
@@ -2719,11 +2993,32 @@
   // ============================================================
   // BLOG
   // ============================================================
-  let blogPosts = [
-    { id:1, title:"5 Everyday Herbs for Digestive Health", titleUr:"ہاضمے کے لیے 5 روزمرہ جڑی بوٹیاں", cat:"Wellness Tips", slug:"herbs-for-digestive-health", excerpt:"A look at fennel, mulethi, and other kitchen staples.", content:"", published:true, date:"20 Jul 2026" },
-    { id:2, title:"Understanding Unani Temperaments", titleUr:"یونانی مزاج کو سمجھنا", cat:"Hikmat 101", slug:"understanding-unani-temperaments", excerpt:"An introduction to the classical Unani concept of mizaj.", content:"", published:false, date:"25 Jul 2026" },
-  ];
-  let blogCounter = 3;
+  let blogPosts = [];
+
+  function adaptBlogPost(b){
+    return {
+      id: b.id, title: b.title, titleUr: b.titleUr, cat: b.cat, slug: b.slug,
+      excerpt: b.excerpt, content: b.content, published: !!b.published,
+      date: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—',
+    };
+  }
+
+  async function loadLiveBlogPosts(){
+    const tbody = document.getElementById('admBlogTableBody');
+    if(tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="adm-empty">Loading…</div></td></tr>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/blog', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load posts (${res.status})`);
+      const data = await res.json();
+      blogPosts = data.map(adaptBlogPost);
+    } catch(err){
+      if(tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="adm-empty">Could not load posts: ${escapeHtml(err.message)}</div></td></tr>`;
+      return;
+    }
+    renderAdmBlogTable();
+  }
 
   function renderAdmBlogTable(){
     const q = (document.getElementById('admBlogSearch').value || '').toLowerCase();
@@ -2737,8 +3032,8 @@
         <td>${b.published ? '<span class="adm-badge success">Published</span>' : '<span class="adm-badge neutral">Draft</span>'}</td>
         <td>${b.date}</td>
         <td style="text-align:right; white-space:nowrap;">
-          <button class="adm-icon-action" title="Edit" onclick="openAdmBlogModal(${b.id})">✎</button>
-          <button class="adm-icon-action danger" title="Delete" onclick="deleteAdmBlogPost(${b.id})">🗑</button>
+          <button class="adm-icon-action" title="Edit" onclick="openAdmBlogModal('${b.id}')">✎</button>
+          <button class="adm-icon-action danger" title="Delete" onclick="deleteAdmBlogPost('${b.id}')">🗑</button>
         </td>
       </tr>`).join('');
   }
@@ -2759,62 +3054,160 @@
     document.getElementById('admBlogModalOverlay').classList.add('open');
   }
   function closeAdmBlogModal(){ document.getElementById('admBlogModalOverlay').classList.remove('open'); }
-  function saveAdmBlogPost(){
+  async function saveAdmBlogPost(){
     const title = document.getElementById('bf_title').value.trim();
     if(!title){ document.getElementById('bf_title').focus(); return; }
+    const slug = document.getElementById('bf_slug').value.trim() || admSlugify(title);
+    const existing = admEditingBlogId ? blogPosts.find(x=>x.id===admEditingBlogId) : null;
+    const content = document.getElementById('bf_content').value.trim();
     const data = {
-      title,
+      title, slug, content,
       titleUr: document.getElementById('bf_titleUr').value.trim(),
       cat: document.getElementById('bf_cat').value.trim(),
-      slug: document.getElementById('bf_slug').value.trim() || admSlugify(title),
       excerpt: document.getElementById('bf_excerpt').value.trim(),
-      content: document.getElementById('bf_content').value.trim(),
       published: document.getElementById('bf_sw_published').classList.contains('on'),
     };
-    if(admEditingBlogId){
-      const existing = blogPosts.find(x=>x.id===admEditingBlogId);
-      Object.assign(existing, data);
-    } else {
-      blogPosts.unshift({ id: blogCounter++, date: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), ...data });
+
+    const saveBtn = document.querySelector('#admBlogModalOverlay .adm-btn-primary');
+    const originalLabel = saveBtn ? saveBtn.textContent : '';
+    if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('You are not signed in. Please log in again.');
+
+      const res = await fetch(existing ? `/api/blog/${existing.slug}` : '/api/blog', {
+        method: existing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(data),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Save failed (${res.status})`);
+      }
+      const saved = await res.json();
+      const adapted = adaptBlogPost(saved);
+
+      if(existing){
+        Object.assign(existing, adapted);
+      } else {
+        blogPosts.unshift(adapted);
+      }
+      closeAdmBlogModal();
+      renderAdmBlogTable();
+    } catch(err){
+      alert('Could not save post: ' + err.message);
+    } finally {
+      if(saveBtn){ saveBtn.textContent = originalLabel; saveBtn.disabled = false; }
     }
-    closeAdmBlogModal();
-    renderAdmBlogTable();
   }
-  function deleteAdmBlogPost(id){
+  async function deleteAdmBlogPost(id){
+    if(!confirm('Delete this post?')) return;
+    const post = blogPosts.find(x=>x.id===id);
     blogPosts = blogPosts.filter(x=>x.id!==id);
     renderAdmBlogTable();
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch(`/api/blog/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Delete failed (${res.status})`);
+      }
+    } catch(err){
+      if(post) blogPosts.push(post);
+      renderAdmBlogTable();
+      alert('Could not delete post: ' + err.message);
+    }
   }
 
   // ============================================================
   // MEDIA LIBRARY — UI-only; real uploads need file storage
   // ============================================================
-  let mediaItems = [
-    { id:1, name:"hero-banner.jpg" },
-    { id:2, name:"joshina-mafasil-1.jpg" },
-    { id:3, name:"hakeem-portrait.jpg" },
-  ];
-  let mediaCounter = 4;
+  let mediaItems = [];
+
+  async function loadLiveMedia(){
+    const grid = document.getElementById('admMediaGrid');
+    if(grid) grid.innerHTML = `<div class="adm-empty">Loading…</div>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/media', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load media (${res.status})`);
+      mediaItems = await res.json();
+    } catch(err){
+      if(grid) grid.innerHTML = `<div class="adm-empty">Could not load media: ${escapeHtml(err.message)}</div>`;
+      return;
+    }
+    renderAdmMediaGrid();
+  }
 
   function renderAdmMediaGrid(){
     const q = (document.getElementById('admMediaSearch').value || '').toLowerCase();
-    const list = mediaItems.filter(m=>!q || m.name.toLowerCase().includes(q));
+    const list = mediaItems.filter(m=>!q || (m.filename||'').toLowerCase().includes(q));
     const grid = document.getElementById('admMediaGrid');
     if(list.length===0){ grid.innerHTML = `<div class="adm-empty">No media found</div>`; return; }
     grid.innerHTML = list.map(m=>`
       <div class="adm-media-card">
-        <div class="adm-media-thumb">${sealMedia(48,0)}</div>
-        <div class="adm-media-name"><span>${escapeHtml(m.name)}</span><button onclick="deleteAdmMedia(${m.id})" title="Delete">🗑</button></div>
+        <div class="adm-media-thumb">${m.dataUrl ? `<img src="${escapeHtml(m.dataUrl)}" style="width:100%;height:100%;object-fit:cover;" />` : sealMedia(48,0)}</div>
+        <div class="adm-media-name"><span>${escapeHtml(m.filename)}</span><button onclick="deleteAdmMedia('${m.id}')" title="Delete">🗑</button></div>
       </div>`).join('');
   }
   document.getElementById('admMediaSearch').addEventListener('input', renderAdmMediaGrid);
-  function addMockMedia(){
-    mediaItems.unshift({ id: mediaCounter, name: `upload-${mediaCounter}.jpg` });
-    mediaCounter++;
-    renderAdmMediaGrid();
-  }
-  function deleteAdmMedia(id){
+
+  document.getElementById('admMediaFileInput').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files);
+    e.target.value = '';
+    if(files.length === 0) return;
+    const grid = document.getElementById('admMediaGrid');
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      for(const file of files){
+        const dataUrl = await compressImageFile(file);
+        const res = await fetch('/api/media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ filename: file.name, contentType: 'image/jpeg', dataUrl, size: dataUrl.length }),
+        });
+        if(!res.ok){
+          const err = await res.json().catch(()=>({}));
+          throw new Error(err.error || `Upload failed (${res.status})`);
+        }
+        const saved = await res.json();
+        mediaItems.unshift(saved);
+      }
+      renderAdmMediaGrid();
+    } catch(err){
+      alert('Could not upload: ' + err.message);
+      if(grid) renderAdmMediaGrid();
+    }
+  });
+
+  async function deleteAdmMedia(id){
+    if(!confirm('Delete this file?')) return;
+    const removed = mediaItems.find(x=>x.id===id);
     mediaItems = mediaItems.filter(x=>x.id!==id);
     renderAdmMediaGrid();
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch(`/api/media/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Delete failed (${res.status})`);
+      }
+    } catch(err){
+      if(removed) mediaItems.push(removed);
+      renderAdmMediaGrid();
+      alert('Could not delete: ' + err.message);
+    }
   }
 
   // ============================================================
@@ -2829,6 +3222,18 @@
     instagram: "",
     facebook: "",
   };
+
+  async function loadLiveSettings(){
+    try {
+      const res = await fetch('/api/settings');
+      if(!res.ok) throw new Error('Failed to load settings');
+      const data = await res.json();
+      Object.assign(siteSettings, data);
+      applySiteSettings();
+    } catch(err){
+      console.error('Could not load live settings, using defaults:', err);
+    }
+  }
 
   function loadAdmSettingsForm(){
     document.getElementById('set_siteName').value = siteSettings.siteName;
@@ -2845,17 +3250,43 @@
     document.querySelectorAll('[data-site-phone]').forEach(el=>el.textContent = siteSettings.phone);
     if(currentProduct) document.getElementById('pdWhatsapp').href = `https://wa.me/${siteSettings.whatsapp}?text=${encodeURIComponent(currentProduct.name)}`;
   }
-  function saveAdmSettings(){
-    siteSettings.siteName = document.getElementById('set_siteName').value.trim() || siteSettings.siteName;
-    siteSettings.whatsapp = document.getElementById('set_whatsapp').value.trim().replace(/[^0-9]/g,'') || siteSettings.whatsapp;
-    siteSettings.email = document.getElementById('set_email').value.trim();
-    siteSettings.phone = document.getElementById('set_phone').value.trim();
-    siteSettings.instagram = document.getElementById('set_instagram').value.trim();
-    siteSettings.facebook = document.getElementById('set_facebook').value.trim();
-    applySiteSettings();
-    const saved = document.getElementById('admSettingsSaved');
-    saved.style.opacity = '1';
-    setTimeout(()=>{ saved.style.opacity = '0'; }, 1800);
+  async function saveAdmSettings(){
+    const update = {
+      siteName: document.getElementById('set_siteName').value.trim() || siteSettings.siteName,
+      whatsapp: document.getElementById('set_whatsapp').value.trim().replace(/[^0-9]/g,'') || siteSettings.whatsapp,
+      email: document.getElementById('set_email').value.trim(),
+      phone: document.getElementById('set_phone').value.trim(),
+      instagram: document.getElementById('set_instagram').value.trim(),
+      facebook: document.getElementById('set_facebook').value.trim(),
+    };
+
+    const saveBtn = document.getElementById('admSettingsSaveBtn');
+    const originalLabel = saveBtn ? saveBtn.textContent : '';
+    if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('You are not signed in. Please log in again.');
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(update),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || `Save failed (${res.status})`);
+      }
+      const saved = await res.json();
+      Object.assign(siteSettings, saved);
+      applySiteSettings();
+      const savedEl = document.getElementById('admSettingsSaved');
+      savedEl.style.opacity = '1';
+      setTimeout(()=>{ savedEl.style.opacity = '0'; }, 1800);
+    } catch(err){
+      alert('Could not save settings: ' + err.message);
+    } finally {
+      if(saveBtn){ saveBtn.textContent = originalLabel; saveBtn.disabled = false; }
+    }
   }
 
   applySiteSettings();
@@ -2962,7 +3393,7 @@
       const res = await fetch('/api/products');
       if(!res.ok) throw new Error('Failed to load products');
       const data = await res.json();
-      products = data.map(p => ({ ...p, cat: p.cat || p.category }));
+      products = data.map(p => ({ ...p, cat: p.cat || p.category, reviews: p.reviewCount ?? p.reviews ?? 0 }));
       renderHomeFeatured();
       injectProductSchema();
       renderCategoryChips();
@@ -2975,6 +3406,7 @@
     }
   }
   loadLiveProducts();
+  loadLiveSettings();
 
   // If an admin is already signed in (e.g. page refreshed on /#/admin), skip straight to the dashboard.
   window.__ssk.onAuthReady.then((user)=>{
