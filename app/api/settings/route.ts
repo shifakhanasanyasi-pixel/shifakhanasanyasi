@@ -56,6 +56,12 @@ const DEFAULTS = {
   hoursSaturday: '10:00 AM – 6:00 PM',
   hoursSundayUr: 'بند',
   hoursSundayEn: 'Closed',
+
+  faqs: [
+    { qUr: 'کیا آپ کی مصنوعات لیبارٹری سے تصدیق شدہ ہیں؟', qEn: 'Are your formulations lab-tested?', aUr: 'جی ہاں — ہر کھیپ آپ تک پہنچنے سے پہلے خالص پن اور حفاظت کے لیے جانچی جاتی ہے۔', aEn: 'Yes — every batch is tested for purity and safety before it reaches you.' },
+    { qUr: 'ترسیل میں کتنا وقت لگتا ہے؟', qEn: 'How long does delivery take?', aUr: 'پاکستان بھر میں 2 سے 4 کاروباری دن، لاہور میں اسی دن ترسیل۔', aEn: '2–4 business days across Pakistan, with same-day dispatch in Lahore.' },
+    { qUr: 'کیا میں حکیم علی رضا سے براہ راست مشاورت کر سکتا ہوں؟', qEn: 'Can I consult Hakim Ali Raza directly?', aUr: 'بالکل — واٹس ایپ یا ہمارے رابطہ صفحے کے ذریعے مشاورت بک کریں۔', aEn: 'Absolutely — book a consultation via WhatsApp or our contact page.' },
+  ],
 };
 
 // GET /api/settings — public
