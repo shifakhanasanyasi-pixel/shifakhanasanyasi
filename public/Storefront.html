@@ -415,6 +415,18 @@
   .hours-row:last-child{ border-bottom:none; }
   .map-box{ border-radius:20px; height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--fg-muted); font-size:13px; }
 
+  /* ============ BLOG (public listing + post pages) ============ */
+  .blog-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:24px; margin-top:32px; }
+  .blog-card{ border-radius:20px; overflow:hidden; padding:24px; cursor:pointer; transition:transform .3s ease; }
+  .blog-card:hover{ transform:translateY(-4px); }
+  .blog-card .blog-cat{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gold); font-weight:700; margin-bottom:8px; }
+  .blog-card h3{ font-size:20px; color:var(--forest); margin-bottom:10px; }
+  html.dark .blog-card h3{ color:var(--cream-50); }
+  .blog-card p{ font-size:14px; color:var(--fg-muted); line-height:1.8; margin-bottom:14px; }
+  .blog-card .blog-date{ font-size:12px; color:var(--fg-muted); }
+  .blog-post-meta{ font-size:13px; color:var(--fg-muted); margin-bottom:24px; }
+  .blog-post-body{ font-size:16px; line-height:2; color:var(--fg); white-space:pre-wrap; }
+
   /* ============ CART & WISHLIST ICONS (navbar buttons with badge count) ============ */
   .nav-icons{ display:flex; align-items:center; gap:8px; }
   .nav-icon-btn{ position:relative; width:40px; height:40px; padding:0; border-radius:50%; border:1px solid rgba(15,61,46,.12); display:flex; align-items:center; justify-content:center; transition:all .25s ease; }
@@ -489,8 +501,9 @@
   #mobileDrawer.open{ transform:translateX(0); }
   html[dir="rtl"] #mobileDrawer.open{ transform:translateX(0); }
   .drawer-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
-  .drawer-close{ padding:10px; border-radius:999px; border:1px solid rgba(15,61,46,.15); }
+  .drawer-close{ width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid rgba(15,61,46,.15); }
   html.dark .drawer-close{ border-color:rgba(247,242,231,.2); }
+  .pill-btn, #drawerThemeBtn{ font-family:'Manrope', sans-serif; }
   .drawer-links{ display:flex; flex-direction:column; gap:4px; margin-bottom:24px; }
   .drawer-links a{ padding:14px 8px; font-size:17px; font-weight:600; border-bottom:1px solid rgba(15,61,46,.08); }
   html.dark .drawer-links a{ border-color:rgba(247,242,231,.1); }
@@ -664,6 +677,13 @@
   .adm-modal-foot{ padding:16px 24px; border-top:1px solid #E4E6E1; display:flex; justify-content:flex-end; gap:10px; }
   .adm-form-section{ margin-bottom:22px; }
   .adm-form-section h4{ font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--forest); margin-bottom:12px; padding-bottom:7px; border-bottom:1px solid #E4E6E1; }
+  .adm-settings-section{ border:1px solid #E4E6E1; border-radius:14px; margin-bottom:14px; overflow:hidden; }
+  .adm-settings-section summary{ list-style:none; cursor:pointer; padding:16px 18px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--forest); display:flex; align-items:center; justify-content:space-between; background:#FAFAF8; }
+  .adm-settings-section summary::-webkit-details-marker{ display:none; }
+  .adm-settings-section summary .chevron{ transition:transform .2s ease; font-size:11px; color:#6B6F68; }
+  .adm-settings-section[open] summary .chevron{ transform:rotate(180deg); }
+  .adm-settings-section .adm-settings-body{ padding:18px; }
+  .adm-settings-body .adm-field:last-child{ margin-bottom:0; }
   .adm-form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .adm-form-grid .full{ grid-column:1/-1; }
   .adm-hint{ font-size:11px; color:#8a8d86; margin-top:4px; }
@@ -742,11 +762,12 @@
     <nav class="navlinks">
       <a onclick="goHash('/shop'); return false;" role="link" tabindex="0" data-nav data-ur="مصنوعات" data-en="Products">مصنوعات</a>
       <a onclick="goHash('/about'); return false;" role="link" tabindex="0" data-nav data-ur="تعارف" data-en="About">تعارف</a>
+      <a onclick="goHash('/blog'); return false;" role="link" tabindex="0" data-nav data-ur="بلاگ" data-en="Blog">بلاگ</a>
       <a onclick="goHash('reviews'); return false;" role="link" tabindex="0" data-nav data-ur="آراء" data-en="Reviews">آراء</a>
       <a onclick="goHash('/contact'); return false;" role="link" tabindex="0" data-nav data-ur="رابطہ" data-en="Contact">رابطہ</a>
     </nav>
     <div class="navactions">
-      <button class="pill-btn" id="langBtn" aria-label="Switch language">🌐 <span id="langBtnLabel">EN</span></button>
+      <button class="pill-btn" id="langBtn" aria-label="Switch language">🌐 <span id="langBtnLabel">English</span></button>
       <button class="icon-btn" id="themeBtn" aria-label="Toggle dark mode">🌙</button>
       <a onclick="goHash('/shop'); return false;" role="link" tabindex="0" data-nav class="cta-solid">🛍️ <span data-ur="خریداری" data-en="Shop">خریداری</span></a>
     </div>
@@ -785,12 +806,13 @@
   <div class="drawer-links">
     <a onclick="goHash('/shop'); return false;" role="link" tabindex="0" data-nav data-ur="مصنوعات" data-en="Products">مصنوعات</a>
     <a onclick="goHash('/about'); return false;" role="link" tabindex="0" data-nav data-ur="تعارف" data-en="About">تعارف</a>
+    <a onclick="goHash('/blog'); return false;" role="link" tabindex="0" data-nav data-ur="بلاگ" data-en="Blog">بلاگ</a>
     <a onclick="goHash('reviews'); return false;" role="link" tabindex="0" data-nav data-ur="آراء" data-en="Reviews">آراء</a>
     <a onclick="goHash('/contact'); return false;" role="link" tabindex="0" data-nav data-ur="رابطہ" data-en="Contact">رابطہ</a>
   </div>
   <div class="drawer-actions">
-    <button class="pill-btn" id="drawerLangBtn" style="justify-content:center;">🌐 <span id="drawerLangLabel">EN</span></button>
-    <button class="icon-btn" id="drawerThemeBtn" style="justify-content:center;">🌙 <span style="margin-inline-start:6px;">Theme</span></button>
+    <button class="pill-btn" id="drawerLangBtn" style="justify-content:center;">🌐 <span id="drawerLangLabel">English</span></button>
+    <button class="pill-btn" id="drawerThemeBtn" style="justify-content:center;">🌙 <span style="margin-inline-start:6px;">Theme</span></button>
     <a onclick="goHash('/shop'); return false;" role="link" tabindex="0" data-nav class="cta-solid">🛍️ <span data-ur="خریداری" data-en="Shop">خریداری</span></a>
   </div>
 </div>
@@ -1143,6 +1165,30 @@
 </div>
 
 <!-- ================================================================
+     BLOG LISTING PAGE
+     ================================================================ -->
+<div id="view-blog" class="view" style="display:none">
+  <div class="section" style="padding-bottom:40px;">
+    <div class="crumb"><a onclick="goHash('/'); return false;" role="link" tabindex="0" data-nav >Home</a> / <span data-ur="بلاگ" data-en="Blog">بلاگ</span></div>
+    <div class="page-hero">
+      <span class="eyebrow" data-ur="مضامین" data-en="Articles">مضامین</span>
+      <h1 class="display" style="font-size:32px; color:var(--forest);" data-ur="صحت اور حکمت کے مضامین" data-en="Wellness &amp; Hikmat Articles">صحت اور حکمت کے مضامین</h1>
+    </div>
+    <div class="blog-grid" id="blogListGrid"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     BLOG POST DETAIL PAGE
+     ================================================================ -->
+<div id="view-blog-post" class="view" style="display:none">
+  <div class="section" style="padding-bottom:40px; max-width:720px; margin:0 auto;">
+    <div class="crumb" id="blogPostCrumb"></div>
+    <div id="blogPostContent"></div>
+  </div>
+</div>
+
+<!-- ================================================================
      CONTACT PAGE (form, WhatsApp/phone/email, map, hours)
      ================================================================ -->
 <div id="view-contact" class="view" style="display:none">
@@ -1216,6 +1262,7 @@
       <div class="adm-nav-item" data-adm-route="customers">👤 Customers</div>
       <div class="adm-nav-item" data-adm-route="blog">📝 Blog</div>
       <div class="adm-nav-item" data-adm-route="media">🖼️ Media Library</div>
+      <div class="adm-nav-item" data-adm-route="subscribers">✉️ Subscribers</div>
       <div class="adm-nav-item" data-adm-route="settings">⚙️ Settings</div>
     </aside>
     <div class="adm-main">
@@ -1322,33 +1369,52 @@
           <div class="adm-media-grid" id="admMediaGrid"></div>
         </div>
 
+        <div class="adm-view" id="adm-view-subscribers">
+          <div class="adm-toolbar">
+            <div class="adm-search">🔍<input id="admSubscriberSearch" placeholder="Search email..." /></div>
+          </div>
+          <div class="adm-table-scroll">
+            <table class="adm-table">
+              <thead><tr><th>Email</th><th>Subscribed</th></tr></thead>
+              <tbody id="admSubscribersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="adm-view" id="adm-view-settings">
-          <div class="adm-card" style="padding:26px; max-width:640px;">
-            <div class="adm-form-section">
-              <h4>Store Info</h4>
+          <div class="adm-card" style="padding:20px; max-width:640px;">
+            <details class="adm-settings-section" open>
+              <summary>Store Info <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field"><label>Site Name</label><input id="set_siteName" /></div>
               <div class="adm-field"><label>WhatsApp Number (used for all order links)</label><input id="set_whatsapp" /></div>
               <div class="adm-field"><label>Contact Email</label><input id="set_email" /></div>
               <div class="adm-field"><label>Contact Phone (display)</label><input id="set_phone" /></div>
-            </div>
-            <div class="adm-form-section">
-              <h4>Social Links</h4>
+              </div>
+            </details>
+            <details class="adm-settings-section">
+              <summary>Social Links <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field"><label>Instagram URL</label><input id="set_instagram" placeholder="https://instagram.com/..." /></div>
               <div class="adm-field"><label>Facebook URL</label><input id="set_facebook" placeholder="https://facebook.com/..." /></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Homepage Hero</h4>
+            <details class="adm-settings-section">
+              <summary>Homepage Hero <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field"><label>Eyebrow (Urdu)</label><input id="set_heroEyebrowUr" /></div>
               <div class="adm-field"><label>Eyebrow (English)</label><input id="set_heroEyebrowEn" /></div>
               <div class="adm-field"><label>Headline (Urdu)</label><input id="set_heroHeadlineUr" /></div>
               <div class="adm-field"><label>Headline (English)</label><input id="set_heroHeadlineEn" /></div>
               <div class="adm-field"><label>Subheading (Urdu)</label><textarea id="set_heroSubheadUr" rows="2"></textarea></div>
               <div class="adm-field"><label>Subheading (English)</label><textarea id="set_heroSubheadEn" rows="2"></textarea></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>About the Hakeem</h4>
+            <details class="adm-settings-section">
+              <summary>About the Hakeem <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field">
                 <label>Photo</label>
                 <input type="file" id="set_hakeemPhotoInput" accept="image/*" style="display:none" />
@@ -1365,54 +1431,67 @@
               <div class="adm-field"><label>Bio Paragraph 1 (English)</label><textarea id="set_hakeemBio1En" rows="3"></textarea></div>
               <div class="adm-field"><label>Bio Paragraph 2 (Urdu)</label><textarea id="set_hakeemBio2Ur" rows="3"></textarea></div>
               <div class="adm-field"><label>Bio Paragraph 2 (English)</label><textarea id="set_hakeemBio2En" rows="3"></textarea></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Stats</h4>
+            <details class="adm-settings-section">
+              <summary>Stats <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field"><label>Years of Experience</label><input id="set_statYears" type="number" /></div>
               <div class="adm-field"><label>Patients Treated</label><input id="set_statPatients" type="number" /></div>
               <div class="adm-field"><label>Herbal Formulations</label><input id="set_statFormulations" type="number" /></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Mission / Vision / Philosophy</h4>
+            <details class="adm-settings-section">
+              <summary>Mission / Vision / Philosophy <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field"><label>Mission (Urdu)</label><textarea id="set_missionTextUr" rows="2"></textarea></div>
               <div class="adm-field"><label>Mission (English)</label><textarea id="set_missionTextEn" rows="2"></textarea></div>
               <div class="adm-field"><label>Vision (Urdu)</label><textarea id="set_visionTextUr" rows="2"></textarea></div>
               <div class="adm-field"><label>Vision (English)</label><textarea id="set_visionTextEn" rows="2"></textarea></div>
               <div class="adm-field"><label>Philosophy (Urdu)</label><textarea id="set_philosophyTextUr" rows="2"></textarea></div>
               <div class="adm-field"><label>Philosophy (English)</label><textarea id="set_philosophyTextEn" rows="2"></textarea></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Timeline Milestones</h4>
+            <details class="adm-settings-section">
+              <summary>Timeline Milestones <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <p style="font-size:12px; color:#6B6F68; margin-bottom:8px;">One milestone per line, format: <code>year | title (Urdu) | title (English) | description (Urdu) | description (English)</code></p>
               <div class="adm-field"><textarea id="set_timeline" rows="6" style="font-size:12px; font-family:monospace;"></textarea></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Certifications</h4>
+            <details class="adm-settings-section">
+              <summary>Certifications <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <p style="font-size:12px; color:#6B6F68; margin-bottom:8px;">One certification per line, format: <code>icon | title (Urdu) | title (English) | subtitle (Urdu) | subtitle (English)</code></p>
               <div class="adm-field"><textarea id="set_certifications" rows="5" style="font-size:12px; font-family:monospace;"></textarea></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Frequently Asked Questions</h4>
+            <details class="adm-settings-section">
+              <summary>Frequently Asked Questions <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <p style="font-size:12px; color:#6B6F68; margin-bottom:8px;">One FAQ per line, format: <code>question (Urdu) | question (English) | answer (Urdu) | answer (English)</code></p>
               <div class="adm-field"><textarea id="set_faqs" rows="6" style="font-size:12px; font-family:monospace;"></textarea></div>
-            </div>
+              </div>
+            </details>
 
-            <div class="adm-form-section">
-              <h4>Contact Page</h4>
+            <details class="adm-settings-section">
+              <summary>Contact Page <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
               <div class="adm-field"><label>Address (Urdu)</label><input id="set_addressUr" /></div>
               <div class="adm-field"><label>Address (English)</label><input id="set_addressEn" /></div>
               <div class="adm-field"><label>Weekday Hours</label><input id="set_hoursWeekday" placeholder="10:00 AM – 8:00 PM" /></div>
               <div class="adm-field"><label>Saturday Hours</label><input id="set_hoursSaturday" placeholder="10:00 AM – 6:00 PM" /></div>
               <div class="adm-field"><label>Sunday (Urdu)</label><input id="set_hoursSundayUr" placeholder="بند" /></div>
               <div class="adm-field"><label>Sunday (English)</label><input id="set_hoursSundayEn" placeholder="Closed" /></div>
-            </div>
+              </div>
+            </details>
 
-            <button class="adm-btn adm-btn-primary" id="admSettingsSaveBtn" onclick="saveAdmSettings()">Save Settings</button>
+            <button class="adm-btn adm-btn-primary" id="admSettingsSaveBtn" onclick="saveAdmSettings()" style="margin-top:8px;">Save Settings</button>
             <span id="admSettingsSaved" style="margin-inline-start:12px; font-size:13px; color:#1B6B4A; font-weight:700; opacity:0; transition:opacity .3s ease;">Saved ✓</span>
           </div>
         </div>
@@ -1574,7 +1653,7 @@
     </div>
     <div>
       <h4>Quick Links</h4>
-      <ul><li><a onclick="goHash('/'); return false;" role="link" tabindex="0" data-nav >Home</a></li><li><a onclick="goHash('/about'); return false;" role="link" tabindex="0" data-nav >About</a></li><li><a onclick="goHash('/shop'); return false;" role="link" tabindex="0" data-nav >Products</a></li></ul>
+      <ul><li><a onclick="goHash('/'); return false;" role="link" tabindex="0" data-nav >Home</a></li><li><a onclick="goHash('/about'); return false;" role="link" tabindex="0" data-nav >About</a></li><li><a onclick="goHash('/shop'); return false;" role="link" tabindex="0" data-nav >Products</a></li><li><a onclick="goHash('/blog'); return false;" role="link" tabindex="0" data-nav >Blog</a></li></ul>
     </div>
     <div>
       <h4>Categories</h4>
@@ -1587,7 +1666,7 @@
   </div>
   <div class="footer-bottom">
     <span>© 2026 Sanyasi Shifa Khana. All rights reserved.</span>
-    <span>Crafted by Ali Raza · <a onclick="goHash('/admin'); return false;" role="link" tabindex="0" data-nav >Admin</a></span>
+    <span>Crafted by Muhammad Umair · <a onclick="goHash('/admin'); return false;" role="link" tabindex="0" data-nav >Admin</a></span>
   </div>
 </footer>
 
@@ -1777,8 +1856,8 @@
   function applyLang(){
     document.documentElement.lang = lang === 'ur' ? 'ur' : 'en';
     document.documentElement.dir = lang === 'ur' ? 'rtl' : 'ltr';
-    document.getElementById('langBtnLabel').textContent = lang === 'ur' ? 'EN' : 'اردو';
-    document.getElementById('drawerLangLabel').textContent = lang === 'ur' ? 'EN' : 'اردو';
+    document.getElementById('langBtnLabel').textContent = lang === 'ur' ? 'English' : 'اردو';
+    document.getElementById('drawerLangLabel').textContent = lang === 'ur' ? 'English' : 'اردو';
     document.getElementById('brandName').textContent = lang === 'ur' ? 'سنیاسی شفا خانہ' : 'Sanyasi Shifa Khana';
     document.getElementById('drawerBrand').textContent = lang === 'ur' ? 'سنیاسی شفا خانہ' : 'Sanyasi Shifa Khana';
     document.querySelectorAll('[data-ur][data-en]').forEach(el=>{
@@ -2537,6 +2616,7 @@
     if(route === 'orders') loadLiveOrders();
     if(route === 'reviews') loadLiveReviews();
     if(route === 'customers') loadLiveCustomers();
+    if(route === 'subscribers') loadLiveSubscribers();
     if(route === 'blog') loadLiveBlogPosts();
     if(route === 'media') loadLiveMedia();
     if(route === 'settings') loadAdmSettingsForm();
@@ -3021,6 +3101,37 @@
       </tr>`).join('');
   }
   document.getElementById('admCustomerSearch').addEventListener('input', renderAdmCustomersTable);
+
+  let subscribers = [];
+
+  async function loadLiveSubscribers(){
+    const tbody = document.getElementById('admSubscribersTableBody');
+    if(tbody) tbody.innerHTML = `<tr><td colspan="2"><div class="adm-empty">Loading…</div></td></tr>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/subscribers', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load subscribers (${res.status})`);
+      subscribers = await res.json();
+    } catch(err){
+      if(tbody) tbody.innerHTML = `<tr><td colspan="2"><div class="adm-empty">Could not load subscribers: ${escapeHtml(err.message)}</div></td></tr>`;
+      return;
+    }
+    renderAdmSubscribersTable();
+  }
+
+  function renderAdmSubscribersTable(){
+    const q = (document.getElementById('admSubscriberSearch').value || '').toLowerCase();
+    const list = subscribers.filter(s=>!q || (s.email||'').toLowerCase().includes(q));
+    const tbody = document.getElementById('admSubscribersTableBody');
+    if(list.length===0){ tbody.innerHTML = `<tr><td colspan="2"><div class="adm-empty">No subscribers yet</div></td></tr>`; return; }
+    tbody.innerHTML = list.map(s=>`
+      <tr>
+        <td>${escapeHtml(s.email||'—')}</td>
+        <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+      </tr>`).join('');
+  }
+  document.getElementById('admSubscriberSearch').addEventListener('input', renderAdmSubscribersTable);
 
   // ============================================================
   // BLOG
@@ -3587,6 +3698,50 @@
     if(ogDesc) ogDesc.setAttribute('content', description);
   }
 
+  async function loadPublicBlogPosts(){
+    const grid = document.getElementById('blogListGrid');
+    grid.innerHTML = `<p style="color:var(--fg-muted);">${lang==='ur'?'لوڈ ہو رہا ہے...':'Loading…'}</p>`;
+    try {
+      const res = await fetch('/api/blog');
+      if(!res.ok) throw new Error('Failed to load posts');
+      const posts = await res.json();
+      if(posts.length === 0){
+        grid.innerHTML = `<p style="color:var(--fg-muted);">${lang==='ur'?'ابھی تک کوئی مضمون شائع نہیں ہوا':'No articles published yet.'}</p>`;
+        return;
+      }
+      grid.innerHTML = posts.map(p => `
+        <div class="blog-card glass reveal in" onclick="goHash('/blog/${p.slug}')">
+          ${p.cat ? `<div class="blog-cat">${escapeHtml(p.cat)}</div>` : ''}
+          <h3>${escapeHtml(lang==='ur' && p.titleUr ? p.titleUr : p.title)}</h3>
+          <p>${escapeHtml(p.excerpt||'')}</p>
+          <div class="blog-date">${p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : ''}</div>
+        </div>`).join('');
+    } catch(err){
+      grid.innerHTML = `<p style="color:var(--fg-muted);">${lang==='ur'?'مضامین لوڈ نہیں ہو سکے':'Could not load articles.'}</p>`;
+    }
+  }
+
+  async function loadBlogPost(slug){
+    const crumb = document.getElementById('blogPostCrumb');
+    const body = document.getElementById('blogPostContent');
+    body.innerHTML = `<p style="color:var(--fg-muted);">${lang==='ur'?'لوڈ ہو رہا ہے...':'Loading…'}</p>`;
+    try {
+      const res = await fetch(`/api/blog/${slug}`);
+      if(!res.ok) throw new Error('not found');
+      const p = await res.json();
+      const title = lang==='ur' && p.titleUr ? p.titleUr : p.title;
+      crumb.innerHTML = `<a onclick="goHash('/'); return false;" role="link" tabindex="0" data-nav >${lang==='ur'?'ہوم':'Home'}</a> / <a onclick="goHash('/blog'); return false;" role="link" tabindex="0" data-nav >${lang==='ur'?'بلاگ':'Blog'}</a> / <span>${escapeHtml(title)}</span>`;
+      body.innerHTML = `
+        <h1 class="display" style="font-size:32px; color:var(--forest); margin-bottom:10px;">${escapeHtml(title)}</h1>
+        <div class="blog-post-meta">${p.cat ? escapeHtml(p.cat)+' · ' : ''}${p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : ''}</div>
+        <div class="blog-post-body">${escapeHtml(p.content||'')}</div>`;
+      setSEO(`${title} | Sanyasi Shifa Khana`, p.excerpt || '');
+    } catch(err){
+      crumb.innerHTML = `<a onclick="goHash('/blog'); return false;" role="link" tabindex="0" data-nav >${lang==='ur'?'بلاگ':'Blog'}</a>`;
+      body.innerHTML = `<p style="color:var(--fg-muted);">${lang==='ur'?'یہ مضمون نہیں ملا':'This article could not be found.'}</p>`;
+    }
+  }
+
   function handleRoute(){
     const raw = location.hash || '#/';
     const pathPart = raw.split('?')[0];
@@ -3613,6 +3768,16 @@
       window.scrollTo(0,0);
       document.querySelectorAll('#view-about .reveal').forEach(el=>el.classList.add('in'));
       setSEO('About Hakeem Ali Raza Sanyasi | Sanyasi Shifa Khana', 'Meet Hakeem Ali Raza Sanyasi — 28 years of Unani Hikmat practice, classical training, and thousands of patients treated naturally.');
+    } else if(pathPart.startsWith('#/blog/')){
+      const slug = pathPart.replace('#/blog/', '');
+      showView('view-blog-post');
+      loadBlogPost(slug);
+      window.scrollTo(0,0);
+    } else if(pathPart === '#/blog'){
+      showView('view-blog');
+      loadPublicBlogPosts();
+      window.scrollTo(0,0);
+      setSEO('Blog | Sanyasi Shifa Khana', 'Wellness tips and Unani Hikmat articles from Sanyasi Shifa Khana.');
     } else if(pathPart === '#/contact'){
       showView('view-contact');
       window.scrollTo(0,0);
