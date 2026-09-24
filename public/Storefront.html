@@ -1505,6 +1505,17 @@
               </div>
             </details>
 
+            <details class="adm-settings-section">
+              <summary>Change Password <span class="chevron">▾</span></summary>
+              <div class="adm-settings-body">
+              <div class="adm-field"><label>Current Password</label><input type="password" id="pw_current" autocomplete="current-password" /></div>
+              <div class="adm-field"><label>New Password</label><input type="password" id="pw_new" autocomplete="new-password" /></div>
+              <div class="adm-field"><label>Confirm New Password</label><input type="password" id="pw_confirm" autocomplete="new-password" /></div>
+              <div id="pwChangeMsg" style="font-size:13px; margin-bottom:10px; display:none;"></div>
+              <button type="button" class="adm-btn adm-btn-primary" id="pwChangeBtn" onclick="changeAdminPassword()">Change Password</button>
+              </div>
+            </details>
+
             <button class="adm-btn adm-btn-primary" id="admSettingsSaveBtn" onclick="saveAdmSettings()" style="margin-top:8px;">Save Settings</button>
             <span id="admSettingsSaved" style="margin-inline-start:12px; font-size:13px; color:#1B6B4A; font-weight:700; opacity:0; transition:opacity .3s ease;">Saved ✓</span>
           </div>
@@ -1691,7 +1702,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
   const firebaseConfig = __FIREBASE_CONFIG__;
   const fbApp = initializeApp(firebaseConfig);
@@ -1704,6 +1715,13 @@
       const user = fbAuth.currentUser;
       if (!user) return null;
       return await user.getIdToken();
+    },
+    changePassword: async (currentPassword, newPassword) => {
+      const user = fbAuth.currentUser;
+      if (!user || !user.email) throw new Error('Not signed in');
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
     },
     onAuthReady: new Promise((resolve) => {
       onAuthStateChanged(fbAuth, (user) => resolve(user));
@@ -3639,6 +3657,57 @@
       alert('Could not process image: ' + err.message);
     }
   });
+
+  async function changeAdminPassword(){
+    const current = document.getElementById('pw_current').value;
+    const next = document.getElementById('pw_new').value;
+    const confirm = document.getElementById('pw_confirm').value;
+    const msgEl = document.getElementById('pwChangeMsg');
+    const btn = document.getElementById('pwChangeBtn');
+    msgEl.style.display = 'none';
+
+    if(!current || !next || !confirm){
+      msgEl.style.color = '#B3261E';
+      msgEl.textContent = 'Please fill in all three fields.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    if(next.length < 6){
+      msgEl.style.color = '#B3261E';
+      msgEl.textContent = 'New password must be at least 6 characters.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    if(next !== confirm){
+      msgEl.style.color = '#B3261E';
+      msgEl.textContent = 'New password and confirmation do not match.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Changing...';
+    btn.disabled = true;
+
+    try {
+      await window.__ssk.changePassword(current, next);
+      msgEl.style.color = '#1B6B4A';
+      msgEl.textContent = 'Password changed successfully.';
+      msgEl.style.display = 'block';
+      document.getElementById('pw_current').value = '';
+      document.getElementById('pw_new').value = '';
+      document.getElementById('pw_confirm').value = '';
+    } catch(err){
+      msgEl.style.color = '#B3261E';
+      msgEl.textContent = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+        ? 'Current password is incorrect.'
+        : ('Could not change password: ' + (err.message || err.code || 'unknown error'));
+      msgEl.style.display = 'block';
+    } finally {
+      btn.textContent = originalLabel;
+      btn.disabled = false;
+    }
+  }
 
   function loadAdmSettingsForm(){
     const s = siteSettings;
