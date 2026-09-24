@@ -1201,10 +1201,11 @@
 
     <div class="contact-grid">
       <form class="contact-form glass reveal" id="contactForm" onsubmit="return false;">
-        <div class="field"><label data-ur="پورا نام" data-en="Full Name">پورا نام</label><input type="text" required /></div>
-        <div class="field"><label data-ur="فون نمبر" data-en="Phone Number">فون نمبر</label><input type="tel" required /></div>
-        <div class="field"><label data-ur="ای میل" data-en="Email">ای میل</label><input type="email" /></div>
-        <div class="field"><label data-ur="پیغام" data-en="Message">پیغام</label><textarea rows="5" required></textarea></div>
+        <div class="field"><label data-ur="پورا نام" data-en="Full Name">پورا نام</label><input type="text" id="contactName" required /></div>
+        <div class="field"><label data-ur="فون نمبر" data-en="Phone Number">فون نمبر</label><input type="tel" id="contactPhone" required /></div>
+        <div class="field"><label data-ur="ای میل" data-en="Email">ای میل</label><input type="email" id="contactEmail" /></div>
+        <div class="field"><label data-ur="پیغام" data-en="Message">پیغام</label><textarea rows="5" id="contactMessage" required></textarea></div>
+        <div id="contactFormError" style="color:#B3261E; font-size:13px; margin-bottom:8px; display:none;"></div>
         <button type="button" class="cta-solid" style="width:100%; justify-content:center;" id="contactSubmitBtn"><span data-ur="پیغام بھیجیں" data-en="Send Message">پیغام بھیجیں</span></button>
       </form>
 
@@ -1263,6 +1264,7 @@
       <div class="adm-nav-item" data-adm-route="blog">📝 Blog</div>
       <div class="adm-nav-item" data-adm-route="media">🖼️ Media Library</div>
       <div class="adm-nav-item" data-adm-route="subscribers">✉️ Subscribers</div>
+      <div class="adm-nav-item" data-adm-route="messages">💬 Messages</div>
       <div class="adm-nav-item" data-adm-route="settings">⚙️ Settings</div>
     </aside>
     <div class="adm-main">
@@ -1377,6 +1379,18 @@
             <table class="adm-table">
               <thead><tr><th>Email</th><th>Subscribed</th></tr></thead>
               <tbody id="admSubscribersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="adm-view" id="adm-view-messages">
+          <div class="adm-toolbar">
+            <div class="adm-search">🔍<input id="admMessageSearch" placeholder="Search name or message..." /></div>
+          </div>
+          <div class="adm-table-scroll">
+            <table class="adm-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>Date</th></tr></thead>
+              <tbody id="admMessagesTableBody"></tbody>
             </table>
           </div>
         </div>
@@ -1523,8 +1537,13 @@
         </div>
         <div class="adm-form-section">
           <h4>Featured Image</h4>
-          <div style="border:2px dashed #E4E6E1; border-radius:14px; padding:24px; text-align:center; color:#6B6F68; font-size:13px;">
-            📷 Drag & drop an image here, or <strong>browse</strong><br/>(Preview only)
+          <input type="file" id="bf_imageInput" accept="image/*" style="display:none" />
+          <div id="bf_dropzone" style="border:2px dashed #E4E6E1; border-radius:14px; padding:24px; text-align:center; color:#6B6F68; font-size:13px; cursor:pointer;">
+            📷 Drag &amp; drop an image here, or <strong>browse</strong>
+          </div>
+          <div id="bf_imagePreviewWrap" style="margin-top:12px; display:none; position:relative; width:120px;">
+            <img id="bf_imagePreview" src="" style="width:120px; height:80px; object-fit:cover; border-radius:10px;" />
+            <button type="button" onclick="removeBfImage()" style="position:absolute; top:-8px; right:-8px; width:22px; height:22px; border-radius:50%; background:#B3261E; color:#fff; border:none; font-size:13px; cursor:pointer;">×</button>
           </div>
         </div>
         <div class="adm-form-section">
@@ -2617,6 +2636,7 @@
     if(route === 'reviews') loadLiveReviews();
     if(route === 'customers') loadLiveCustomers();
     if(route === 'subscribers') loadLiveSubscribers();
+    if(route === 'messages') loadLiveMessages();
     if(route === 'blog') loadLiveBlogPosts();
     if(route === 'media') loadLiveMedia();
     if(route === 'settings') loadAdmSettingsForm();
@@ -3133,6 +3153,40 @@
   }
   document.getElementById('admSubscriberSearch').addEventListener('input', renderAdmSubscribersTable);
 
+  let contactMessages = [];
+
+  async function loadLiveMessages(){
+    const tbody = document.getElementById('admMessagesTableBody');
+    if(tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="adm-empty">Loading…</div></td></tr>`;
+    try {
+      const token = await window.__ssk.getIdToken();
+      if(!token) throw new Error('Not signed in');
+      const res = await fetch('/api/contact', { headers: { 'Authorization': `Bearer ${token}` } });
+      if(!res.ok) throw new Error(`Failed to load messages (${res.status})`);
+      contactMessages = await res.json();
+    } catch(err){
+      if(tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="adm-empty">Could not load messages: ${escapeHtml(err.message)}</div></td></tr>`;
+      return;
+    }
+    renderAdmMessagesTable();
+  }
+
+  function renderAdmMessagesTable(){
+    const q = (document.getElementById('admMessageSearch').value || '').toLowerCase();
+    const list = contactMessages.filter(m=>!q || (m.name||'').toLowerCase().includes(q) || (m.message||'').toLowerCase().includes(q));
+    const tbody = document.getElementById('admMessagesTableBody');
+    if(list.length===0){ tbody.innerHTML = `<tr><td colspan="5"><div class="adm-empty">No messages yet</div></td></tr>`; return; }
+    tbody.innerHTML = list.map(m=>`
+      <tr>
+        <td>${escapeHtml(m.name||'—')}</td>
+        <td>${escapeHtml(m.phone||'—')}</td>
+        <td>${escapeHtml(m.email||'—')}</td>
+        <td style="max-width:280px; white-space:normal;">${escapeHtml(m.message||'')}</td>
+        <td>${m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+      </tr>`).join('');
+  }
+  document.getElementById('admMessageSearch').addEventListener('input', renderAdmMessagesTable);
+
   // ============================================================
   // BLOG
   // ============================================================
@@ -3142,6 +3196,7 @@
     return {
       id: b.id, title: b.title, titleUr: b.titleUr, cat: b.cat, slug: b.slug,
       excerpt: b.excerpt, content: b.content, published: !!b.published,
+      featuredImage: b.featuredImage || '',
       date: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—',
     };
   }
@@ -3183,6 +3238,44 @@
   document.getElementById('admBlogSearch').addEventListener('input', renderAdmBlogTable);
 
   let admEditingBlogId = null;
+  let bfFeaturedImage = '';
+  function renderBfImagePreview(){
+    const wrap = document.getElementById('bf_imagePreviewWrap');
+    const img = document.getElementById('bf_imagePreview');
+    if(bfFeaturedImage){ img.src = bfFeaturedImage; wrap.style.display = 'block'; }
+    else { wrap.style.display = 'none'; }
+  }
+  function removeBfImage(){ bfFeaturedImage = ''; renderBfImagePreview(); }
+
+  const bfDropzone = document.getElementById('bf_dropzone');
+  const bfImageInput = document.getElementById('bf_imageInput');
+  bfDropzone.addEventListener('click', ()=> bfImageInput.click());
+  bfImageInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try {
+      bfFeaturedImage = await compressImageFile(file, 800, 0.75);
+      renderBfImagePreview();
+    } catch(err){
+      alert('Could not process image: ' + err.message);
+    }
+  });
+  bfDropzone.addEventListener('dragover', (e)=>{ e.preventDefault(); bfDropzone.style.borderColor = 'var(--gold)'; });
+  bfDropzone.addEventListener('dragleave', ()=>{ bfDropzone.style.borderColor = '#E4E6E1'; });
+  bfDropzone.addEventListener('drop', async (e)=>{
+    e.preventDefault();
+    bfDropzone.style.borderColor = '#E4E6E1';
+    const file = Array.from(e.dataTransfer.files).find(f=>f.type.startsWith('image/'));
+    if(!file) return;
+    try {
+      bfFeaturedImage = await compressImageFile(file, 800, 0.75);
+      renderBfImagePreview();
+    } catch(err){
+      alert('Could not process image: ' + err.message);
+    }
+  });
+
   function openAdmBlogModal(id){
     admEditingBlogId = id || null;
     const b = id ? blogPosts.find(x=>x.id===id) : null;
@@ -3194,6 +3287,8 @@
     document.getElementById('bf_excerpt').value = b ? (b.excerpt||'') : '';
     document.getElementById('bf_content').value = b ? (b.content||'') : '';
     document.getElementById('bf_sw_published').classList.toggle('on', b ? !!b.published : false);
+    bfFeaturedImage = b ? (b.featuredImage || '') : '';
+    renderBfImagePreview();
     document.getElementById('admBlogModalOverlay').classList.add('open');
   }
   function closeAdmBlogModal(){ document.getElementById('admBlogModalOverlay').classList.remove('open'); }
@@ -3209,6 +3304,7 @@
       cat: document.getElementById('bf_cat').value.trim(),
       excerpt: document.getElementById('bf_excerpt').value.trim(),
       published: document.getElementById('bf_sw_published').classList.contains('on'),
+      featuredImage: bfFeaturedImage,
     };
 
     const saveBtn = document.querySelector('#admBlogModalOverlay .adm-btn-primary');
@@ -3711,6 +3807,7 @@
       }
       grid.innerHTML = posts.map(p => `
         <div class="blog-card glass reveal in" onclick="goHash('/blog/${p.slug}')">
+          ${p.featuredImage ? `<img src="${escapeHtml(p.featuredImage)}" alt="" style="width:100%; height:160px; object-fit:cover; border-radius:14px; margin-bottom:16px;" />` : ''}
           ${p.cat ? `<div class="blog-cat">${escapeHtml(p.cat)}</div>` : ''}
           <h3>${escapeHtml(lang==='ur' && p.titleUr ? p.titleUr : p.title)}</h3>
           <p>${escapeHtml(p.excerpt||'')}</p>
@@ -3732,6 +3829,7 @@
       const title = lang==='ur' && p.titleUr ? p.titleUr : p.title;
       crumb.innerHTML = `<a onclick="goHash('/'); return false;" role="link" tabindex="0" data-nav >${lang==='ur'?'ہوم':'Home'}</a> / <a onclick="goHash('/blog'); return false;" role="link" tabindex="0" data-nav >${lang==='ur'?'بلاگ':'Blog'}</a> / <span>${escapeHtml(title)}</span>`;
       body.innerHTML = `
+        ${p.featuredImage ? `<img src="${escapeHtml(p.featuredImage)}" alt="" style="width:100%; max-height:360px; object-fit:cover; border-radius:20px; margin-bottom:24px;" />` : ''}
         <h1 class="display" style="font-size:32px; color:var(--forest); margin-bottom:10px;">${escapeHtml(title)}</h1>
         <div class="blog-post-meta">${p.cat ? escapeHtml(p.cat)+' · ' : ''}${p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : ''}</div>
         <div class="blog-post-body">${escapeHtml(p.content||'')}</div>`;
@@ -3800,14 +3898,47 @@
     }
   }
 
-  // ============ CONTACT PAGE FORM (UI only — no backend wired up yet) ============
-  document.getElementById('contactSubmitBtn').addEventListener('click', function(e){
+  // ============ CONTACT PAGE FORM ============
+  document.getElementById('contactSubmitBtn').addEventListener('click', async function(e){
     e.preventDefault();
     const btn = document.getElementById('contactSubmitBtn');
     const span = btn.querySelector('span');
+    const errEl = document.getElementById('contactFormError');
     const original = lang === 'ur' ? 'پیغام بھیجیں' : 'Send Message';
-    span.textContent = lang === 'ur' ? 'بھیج دیا گیا ✓' : 'Sent ✓';
-    setTimeout(()=>{ span.textContent = original; document.getElementById('contactForm').reset(); }, 1800);
+    errEl.style.display = 'none';
+
+    const name = document.getElementById('contactName').value.trim();
+    const phone = document.getElementById('contactPhone').value.trim();
+    const email = document.getElementById('contactEmail').value.trim();
+    const message = document.getElementById('contactMessage').value.trim();
+
+    if(!name || !phone || !message){
+      errEl.textContent = lang === 'ur' ? 'براہ کرم نام، فون اور پیغام درج کریں' : 'Please fill in name, phone, and message';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    span.textContent = lang === 'ur' ? 'بھیجا جا رہا ہے...' : 'Sending...';
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, email, message }),
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || 'Could not send message');
+      }
+      span.textContent = lang === 'ur' ? 'بھیج دیا گیا ✓' : 'Sent ✓';
+      setTimeout(()=>{ span.textContent = original; document.getElementById('contactForm').reset(); btn.disabled = false; }, 1800);
+    } catch(err){
+      errEl.textContent = (lang === 'ur' ? 'خرابی: ' : 'Error: ') + err.message;
+      errEl.style.display = 'block';
+      span.textContent = original;
+      btn.disabled = false;
+    }
   });
 
   window.addEventListener('hashchange', handleRoute);
