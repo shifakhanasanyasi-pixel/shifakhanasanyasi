@@ -779,6 +779,28 @@
   html.dark .service-card h4{ color:var(--gold-300); }
   #services{ scroll-margin-top:90px; }
   .services-note{ margin-top:20px; font-size:13px; color:var(--fg-muted); text-align:center; }
+
+  /* ---- Admin: repeater editor (used for Timeline, Certifications, FAQs, Services, Footer Categories) ---- */
+  .rep-list{ display:flex; flex-direction:column; gap:12px; margin-bottom:12px; }
+  .rep-item{ border:1px solid rgba(15,61,46,.12); border-radius:12px; padding:14px; background:rgba(255,255,255,.5); }
+  html.dark .rep-item{ border-color:rgba(247,242,231,.15); background:rgba(8,31,23,.3); }
+  .rep-item-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .rep-item-head .rep-num{ font-size:12px; font-weight:700; color:#6B6F68; }
+  .rep-item-actions{ display:flex; gap:6px; }
+  .rep-item-actions button{ width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,61,46,.15); background:#fff; cursor:pointer; font-size:13px; line-height:1; }
+  html.dark .rep-item-actions button{ background:rgba(247,242,231,.08); border-color:rgba(247,242,231,.2); color:#F7F2E7; }
+  .rep-item-actions button:disabled{ opacity:.3; cursor:not-allowed; }
+  .rep-item-actions button.rep-del{ color:#B3261E; }
+  .rep-fields{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rep-fields.rep-fields-1{ grid-template-columns:1fr; }
+  .rep-field{ display:flex; flex-direction:column; gap:4px; }
+  .rep-field.rep-field-wide{ grid-column:1/-1; }
+  .rep-field label{ font-size:11px; font-weight:700; color:#6B6F68; }
+  .rep-field input, .rep-field textarea{ padding:8px 10px; border-radius:8px; border:1px solid rgba(15,61,46,.15); font-size:13px; font-family:inherit; background:#fff; color:inherit; }
+  html.dark .rep-field input, html.dark .rep-field textarea{ background:rgba(8,31,23,.4); border-color:rgba(247,242,231,.18); color:#F7F2E7; }
+  .rep-add-btn{ display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; border:1.5px dashed var(--emerald); background:transparent; color:var(--emerald); font-size:13px; font-weight:700; cursor:pointer; }
+  html.dark .rep-add-btn{ border-color:var(--gold-300); color:var(--gold-300); }
+  .rep-empty{ font-size:13px; color:#6B6F68; padding:10px 0; }
 </style>
 </head>
 <body>
@@ -1541,24 +1563,27 @@
             <details class="adm-settings-section">
               <summary>Timeline Milestones <span class="chevron">▾</span></summary>
               <div class="adm-settings-body">
-              <p style="font-size:12px; color:#6B6F68; margin-bottom:8px;">One milestone per line, format: <code>year | title (Urdu) | title (English) | description (Urdu) | description (English)</code></p>
-              <div class="adm-field"><textarea id="set_timeline" rows="6" style="font-size:12px; font-family:monospace;"></textarea></div>
+              <p style="font-size:12px; color:#6B6F68; margin-bottom:10px;">Each card below is one dot on the timeline. Use the arrows to reorder, 🗑 to remove, and "+ Add Milestone" to add a new one.</p>
+              <div class="rep-list" id="timelineRepeater"></div>
+              <button type="button" class="rep-add-btn" data-rep-add="timeline">+ Add Milestone</button>
               </div>
             </details>
 
             <details class="adm-settings-section">
               <summary>Certifications <span class="chevron">▾</span></summary>
               <div class="adm-settings-body">
-              <p style="font-size:12px; color:#6B6F68; margin-bottom:8px;">One certification per line, format: <code>icon | title (Urdu) | title (English) | subtitle (Urdu) | subtitle (English)</code></p>
-              <div class="adm-field"><textarea id="set_certifications" rows="5" style="font-size:12px; font-family:monospace;"></textarea></div>
+              <p style="font-size:12px; color:#6B6F68; margin-bottom:10px;">One card per certification or registration. The icon can be any emoji, e.g. 🎓 📜 🏥.</p>
+              <div class="rep-list" id="certificationsRepeater"></div>
+              <button type="button" class="rep-add-btn" data-rep-add="certifications">+ Add Certification</button>
               </div>
             </details>
 
             <details class="adm-settings-section">
               <summary>Frequently Asked Questions <span class="chevron">▾</span></summary>
               <div class="adm-settings-body">
-              <p style="font-size:12px; color:#6B6F68; margin-bottom:8px;">One FAQ per line, format: <code>question (Urdu) | question (English) | answer (Urdu) | answer (English)</code></p>
-              <div class="adm-field"><textarea id="set_faqs" rows="6" style="font-size:12px; font-family:monospace;"></textarea></div>
+              <p style="font-size:12px; color:#6B6F68; margin-bottom:10px;">One card per question. The first question is shown already open on the site.</p>
+              <div class="rep-list" id="faqsRepeater"></div>
+              <button type="button" class="rep-add-btn" data-rep-add="faqs">+ Add Question</button>
               </div>
             </details>
 
@@ -1569,9 +1594,10 @@
               <div class="adm-field"><label>Hijama Heading (English)</label><input id="set_hijamaTitleEn" /></div>
               <div class="adm-field"><label>Hijama Description (Urdu)</label><textarea id="set_hijamaDescUr" rows="3"></textarea></div>
               <div class="adm-field"><label>Hijama Description (English)</label><textarea id="set_hijamaDescEn" rows="3"></textarea></div>
-              <p style="font-size:12px; color:#6B6F68; margin:12px 0 8px;">Other services — one per line, format: <code>icon | title (Urdu) | title (English) | description (Urdu) | description (English)</code></p>
-              <div class="adm-field"><textarea id="set_services" rows="9" style="font-size:12px; font-family:monospace;"></textarea></div>
-              <div class="adm-field"><label>Note under services (Urdu)</label><input id="set_servicesNoteUr" /></div>
+              <p style="font-size:12px; color:#6B6F68; margin:12px 0 8px;">Other services — one card per service. The icon can be any emoji, e.g. 🌿 🦴 🩺.</p>
+              <div class="rep-list" id="servicesRepeater"></div>
+              <button type="button" class="rep-add-btn" data-rep-add="services">+ Add Service</button>
+              <div class="adm-field" style="margin-top:14px;"><label>Note under services (Urdu)</label><input id="set_servicesNoteUr" /></div>
               <div class="adm-field"><label>Note under services (English)</label><input id="set_servicesNoteEn" /></div>
               </div>
             </details>
@@ -1582,8 +1608,9 @@
               <p style="font-size:12px; color:#6B6F68; margin:0 0 10px;">Phone, email, WhatsApp, Facebook, Instagram, Site Name and Address are edited in their own sections and appear in the footer automatically.</p>
               <div class="adm-field"><label>Footer Tagline (Urdu)</label><textarea id="set_footerTaglineUr" rows="2"></textarea></div>
               <div class="adm-field"><label>Footer Tagline (English)</label><textarea id="set_footerTaglineEn" rows="2"></textarea></div>
-              <p style="font-size:12px; color:#6B6F68; margin:12px 0 8px;">Footer categories — one per line: <code>label (English) | label (Urdu) | product category</code></p>
-              <div class="adm-field"><textarea id="set_footerCategories" rows="5" style="font-size:12px; font-family:monospace;"></textarea></div>
+              <p style="font-size:12px; color:#6B6F68; margin:12px 0 8px;">Footer category links — "Product category" must match a category used on your products.</p>
+              <div class="rep-list" id="footerCategoriesRepeater"></div>
+              <button type="button" class="rep-add-btn" data-rep-add="footerCategories">+ Add Category Link</button>
               <div class="adm-field"><label><input type="checkbox" id="set_footerShowAddress" /> Show address in footer</label></div>
               </div>
             </details>
@@ -3824,6 +3851,126 @@
     });
   }
 
+
+  // ============ Generic admin repeater (Timeline, Certifications, FAQs, Services, Footer Categories) ============
+  const REPEATER_CONFIGS = {
+    timeline: {
+      empty: { year:'', titleUr:'', titleEn:'', descUr:'', descEn:'' },
+      fields: [
+        { key:'year', label:'Year', wide:false },
+        { key:'titleUr', label:'Title (Urdu)', wide:false },
+        { key:'titleEn', label:'Title (English)', wide:false },
+        { key:'descUr', label:'Description (Urdu)', wide:true, area:true },
+        { key:'descEn', label:'Description (English)', wide:true, area:true },
+      ],
+      addLabel: 'Milestone',
+    },
+    certifications: {
+      empty: { icon:'🎓', titleUr:'', titleEn:'', subtitleUr:'', subtitleEn:'' },
+      fields: [
+        { key:'icon', label:'Icon (emoji)', wide:false },
+        { key:'titleUr', label:'Title (Urdu)', wide:false },
+        { key:'titleEn', label:'Title (English)', wide:false },
+        { key:'subtitleUr', label:'Subtitle (Urdu)', wide:false },
+        { key:'subtitleEn', label:'Subtitle (English)', wide:false },
+      ],
+      addLabel: 'Certification',
+    },
+    faqs: {
+      empty: { qUr:'', qEn:'', aUr:'', aEn:'' },
+      fields: [
+        { key:'qUr', label:'Question (Urdu)', wide:true },
+        { key:'qEn', label:'Question (English)', wide:true },
+        { key:'aUr', label:'Answer (Urdu)', wide:true, area:true },
+        { key:'aEn', label:'Answer (English)', wide:true, area:true },
+      ],
+      addLabel: 'Question',
+    },
+    services: {
+      empty: { icon:'🌿', titleUr:'', titleEn:'', descUr:'', descEn:'' },
+      fields: [
+        { key:'icon', label:'Icon (emoji)', wide:false },
+        { key:'titleUr', label:'Title (Urdu)', wide:false },
+        { key:'titleEn', label:'Title (English)', wide:false },
+        { key:'descUr', label:'Description (Urdu)', wide:true, area:true },
+        { key:'descEn', label:'Description (English)', wide:true, area:true },
+      ],
+      addLabel: 'Service',
+    },
+    footerCategories: {
+      empty: { labelEn:'', labelUr:'', category:'' },
+      fields: [
+        { key:'labelEn', label:'Label (English)', wide:false },
+        { key:'labelUr', label:'Label (Urdu)', wide:false },
+        { key:'category', label:'Product category', wide:true },
+      ],
+      addLabel: 'Category Link',
+    },
+  };
+  const admRepeaters = { timeline:[], certifications:[], faqs:[], services:[], footerCategories:[] };
+
+  function renderRepeater(key){
+    const cfg = REPEATER_CONFIGS[key];
+    const container = document.getElementById(key + 'Repeater');
+    if(!container || !cfg) return;
+    const items = admRepeaters[key];
+    if(!items.length){
+      container.innerHTML = `<p class="rep-empty">No items yet — click "+ Add ${cfg.addLabel}" below to create the first one.</p>`;
+      return;
+    }
+    container.innerHTML = items.map((item, idx) => `
+      <div class="rep-item" data-rep="${key}" data-idx="${idx}">
+        <div class="rep-item-head">
+          <span class="rep-num">#${idx+1}</span>
+          <div class="rep-item-actions">
+            <button type="button" data-rep-act="up" ${idx===0?'disabled':''} title="Move up">↑</button>
+            <button type="button" data-rep-act="down" ${idx===items.length-1?'disabled':''} title="Move down">↓</button>
+            <button type="button" data-rep-act="del" class="rep-del" title="Remove">🗑</button>
+          </div>
+        </div>
+        <div class="rep-fields">
+          ${cfg.fields.map(f => `
+            <div class="rep-field${f.wide?' rep-field-wide':''}">
+              <label>${f.label}</label>
+              ${f.area
+                ? `<textarea rows="2" data-rep-field="${f.key}">${escapeHtml(item[f.key] ?? '')}</textarea>`
+                : `<input type="text" data-rep-field="${f.key}" value="${escapeHtml(item[f.key] ?? '')}" />`}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  function initRepeaters(){
+    document.querySelectorAll('.rep-list').forEach(container => {
+      container.addEventListener('input', e => {
+        const itemEl = e.target.closest('.rep-item');
+        if(!itemEl) return;
+        const key = itemEl.dataset.rep, idx = +itemEl.dataset.idx, field = e.target.dataset.repField;
+        if(key && field != null && admRepeaters[key] && admRepeaters[key][idx]) admRepeaters[key][idx][field] = e.target.value;
+      });
+      container.addEventListener('click', e => {
+        const btn = e.target.closest('[data-rep-act]');
+        if(!btn) return;
+        const itemEl = btn.closest('.rep-item');
+        const key = itemEl.dataset.rep, idx = +itemEl.dataset.idx, act = btn.dataset.repAct;
+        const arr = admRepeaters[key];
+        if(act === 'del'){ arr.splice(idx,1); }
+        else if(act === 'up' && idx>0){ [arr[idx-1],arr[idx]] = [arr[idx],arr[idx-1]]; }
+        else if(act === 'down' && idx<arr.length-1){ [arr[idx+1],arr[idx]] = [arr[idx],arr[idx+1]]; }
+        renderRepeater(key);
+      });
+    });
+    document.querySelectorAll('[data-rep-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.repAdd;
+        admRepeaters[key].push({ ...REPEATER_CONFIGS[key].empty });
+        renderRepeater(key);
+        const container = document.getElementById(key + 'Repeater');
+        if(container) container.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'center' });
+      });
+    });
+  }
+
   let admHakeemPhotoData = null;
   document.getElementById('set_hakeemPhotoInput').addEventListener('change', async (e)=>{
     const file = e.target.files[0];
@@ -3930,17 +4077,17 @@
     document.getElementById('set_philosophyTextUr').value = s.philosophyTextUr || '';
     document.getElementById('set_philosophyTextEn').value = s.philosophyTextEn || '';
 
-    document.getElementById('set_timeline').value = timelineToText(s.timeline);
-    document.getElementById('set_certifications').value = certsToText(s.certifications);
-    document.getElementById('set_faqs').value = faqsToText(s.faqs);
+    admRepeaters.timeline = JSON.parse(JSON.stringify(s.timeline || [])); renderRepeater('timeline');
+    admRepeaters.certifications = JSON.parse(JSON.stringify(s.certifications || [])); renderRepeater('certifications');
+    admRepeaters.faqs = JSON.parse(JSON.stringify(s.faqs || [])); renderRepeater('faqs');
     document.getElementById('set_hijamaTitleUr').value = s.hijamaTitleUr ?? '';
     document.getElementById('set_hijamaTitleEn').value = s.hijamaTitleEn ?? '';
     document.getElementById('set_hijamaDescUr').value = s.hijamaDescUr ?? '';
     document.getElementById('set_hijamaDescEn').value = s.hijamaDescEn ?? '';
-    document.getElementById('set_services').value = servicesToText(s.services);
+    admRepeaters.services = JSON.parse(JSON.stringify(s.services || [])); renderRepeater('services');
     document.getElementById('set_footerTaglineUr').value = s.footerTaglineUr ?? '';
     document.getElementById('set_footerTaglineEn').value = s.footerTaglineEn ?? '';
-    document.getElementById('set_footerCategories').value = footerCatsToText(s.footerCategories);
+    admRepeaters.footerCategories = JSON.parse(JSON.stringify(s.footerCategories || [])); renderRepeater('footerCategories');
     document.getElementById('set_footerShowAddress').checked = s.footerShowAddress !== false;
     document.getElementById('set_servicesNoteUr').value = s.servicesNoteUr ?? '';
     document.getElementById('set_servicesNoteEn').value = s.servicesNoteEn ?? '';
@@ -3987,14 +4134,14 @@
       visionTextUr: val('set_visionTextUr'), visionTextEn: val('set_visionTextEn'),
       philosophyTextUr: val('set_philosophyTextUr'), philosophyTextEn: val('set_philosophyTextEn'),
 
-      timeline: textToTimeline(val('set_timeline')),
-      certifications: textToCerts(val('set_certifications')),
-      faqs: textToFaqs(val('set_faqs')),
+      timeline: admRepeaters.timeline,
+      certifications: admRepeaters.certifications,
+      faqs: admRepeaters.faqs,
       hijamaTitleUr: val('set_hijamaTitleUr'), hijamaTitleEn: val('set_hijamaTitleEn'),
       hijamaDescUr: val('set_hijamaDescUr'), hijamaDescEn: val('set_hijamaDescEn'),
-      services: textToServices(val('set_services')),
+      services: admRepeaters.services,
       footerTaglineUr: val('set_footerTaglineUr'), footerTaglineEn: val('set_footerTaglineEn'),
-      footerCategories: textToFooterCats(val('set_footerCategories')),
+      footerCategories: admRepeaters.footerCategories,
       footerShowAddress: document.getElementById('set_footerShowAddress').checked,
       servicesNoteUr: val('set_servicesNoteUr'), servicesNoteEn: val('set_servicesNoteEn'),
 
@@ -4036,6 +4183,7 @@
 
   applySiteSettings();
   applySiteContent();
+  initRepeaters();
 
   // ============ CLIENT-SIDE ROUTER (switches between pages/views) ============
   function showView(id){
