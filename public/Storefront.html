@@ -2903,7 +2903,8 @@
     const name = document.getElementById('af_name').value.trim();
     if(!name){ document.getElementById('af_name').focus(); return; }
     const cat = document.getElementById('af_cat').value;
-    const slug = document.getElementById('af_slug').value.trim() || admSlugify(name);
+    const rawSlug = document.getElementById('af_slug').value.trim();
+    const slug = admSlugify(rawSlug || name);
     const existing = admEditingSlug ? products.find(x=>x.slug===admEditingSlug) : null;
 
     const data = {
